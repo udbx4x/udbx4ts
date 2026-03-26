@@ -1,0 +1,58 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  background: linear-gradient(140deg, #f5f7fa, #e8eef8);
+  color: #1e2a3a;
+}
+
+.app {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 16px 24px;
+}
+
+h1 {
+  margin: 0;
+}
+
+.sub {
+  margin-top: 8px;
+  color: #4b5f7b;
+}
+
+.panel {
+  margin-top: 16px;
+  background: #ffffffc7;
+  border: 1px solid #d7dfeb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+button,
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #b8c5da;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.file input {
+  display: none;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

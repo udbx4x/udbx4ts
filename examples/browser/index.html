@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>udbx4ts Browser Demo</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <h1>udbx4ts Browser Demo</h1>
+      <p class="sub">
+        SQLite WASM + Worker + OPFS（不可用时自动降级到内存模式）
+      </p>
+
+      <section class="panel">
+        <button id="open-btn">1. 初始化数据库</button>
+        <label class="file">
+          2. 导入 .udbx
+          <input id="file-input" type="file" accept=".udbx,.db,.sqlite,.sqlite3" />
+        </label>
+        <button id="create-btn">3. 创建示例数据集</button>
+        <button id="export-btn">4. 导出数据库</button>
+      </section>
+
+      <section class="panel">
+        <h2>数据集列表</h2>
+        <pre id="datasets">(尚未加载)</pre>
+      </section>
+
+      <section class="panel">
+        <h2>日志</h2>
+        <pre id="logs"></pre>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

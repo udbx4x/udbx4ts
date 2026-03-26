@@ -1,0 +1,11 @@
+export class NotImplementedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotImplementedError";
+  }
+}
+
+export function createNotImplementedError(scope: string): NotImplementedError {
+  return new NotImplementedError(`${scope} is not implemented yet.`);
+}
+
