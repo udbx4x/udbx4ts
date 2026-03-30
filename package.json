@@ -52,5 +52,13 @@
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "^3.51.2-build8"
+  },
+  "peerDependencies": {
+    "better-sqlite3": ">=9.0.0"
+  },
+  "peerDependenciesMeta": {
+    "better-sqlite3": {
+      "optional": true
+    }
   }
 }

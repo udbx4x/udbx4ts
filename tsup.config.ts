@@ -8,6 +8,7 @@ export default defineConfig({
   },
   clean: true,
   dts: true,
+  external: ["better-sqlite3"],
   format: ["esm", "cjs"],
   outDir: "dist",
   sourcemap: true,

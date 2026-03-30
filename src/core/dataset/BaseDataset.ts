@@ -1,10 +1,9 @@
 import type { SqlDriver } from "../sql/SqlDriver";
-import type { DatasetInfo, FieldInfo, Feature } from "../types";
+import type { DatasetInfo, FieldInfo } from "../types";
 import { SmFieldInfoRepository } from "../schema/SmFieldInfoRepository";
-import type { Dataset } from "./Dataset";
+import type { DatasetInfoProvider } from "./Dataset";
 
-export abstract class BaseDataset<TFeature extends Feature = Feature>
-  implements Dataset<TFeature> {
+export abstract class BaseDataset implements DatasetInfoProvider {
   protected readonly fieldInfoRepository: SmFieldInfoRepository;
 
   constructor(
@@ -18,4 +17,3 @@ export abstract class BaseDataset<TFeature extends Feature = Feature>
     return this.fieldInfoRepository.findByDatasetId(this.info.id);
   }
 }
-

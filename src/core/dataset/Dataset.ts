@@ -1,9 +1,12 @@
 import type { DatasetInfo, Feature, FieldInfo, QueryOptions } from "../types";
 
-export interface Dataset<TFeature extends Feature = Feature> {
+export interface DatasetInfoProvider {
   readonly info: DatasetInfo;
   getFields(): Promise<readonly FieldInfo[]>;
 }
+
+export interface Dataset<TFeature extends Feature = Feature>
+  extends DatasetInfoProvider {}
 
 export interface ReadableDataset<TFeature extends Feature = Feature>
   extends Dataset<TFeature> {
@@ -17,4 +20,3 @@ export interface WritableDataset<TFeature extends Feature = Feature>
   insert(feature: TFeature): Promise<void>;
   insertMany(features: Iterable<TFeature> | AsyncIterable<TFeature>): Promise<void>;
 }
-
