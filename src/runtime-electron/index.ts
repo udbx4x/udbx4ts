@@ -1,5 +1,6 @@
-import type { UdbxDataSource } from "../core/datasource/UdbxDataSource";
-import { createNotImplementedError } from "../core/utils/errors";
+import { UdbxDataSource } from "../core/datasource/UdbxDataSource";
+import { BetterSqlite3Driver } from "./BetterSqlite3Driver";
+import { existsSync } from "node:fs";
 
 export interface ElectronUdbxOptions {
   readonly path: string;
@@ -7,8 +8,24 @@ export interface ElectronUdbxOptions {
 }
 
 export async function createElectronUdbx(
-  _options: ElectronUdbxOptions
+  options: ElectronUdbxOptions
 ): Promise<UdbxDataSource> {
-  throw createNotImplementedError("createElectronUdbx");
+  const driver = new BetterSqlite3Driver();
+  const fileExists = existsSync(options.path);
+
+  if (fileExists) {
+    return UdbxDataSource.open({
+      driver,
+      target: { kind: "file", path: options.path },
+      runtime: "electron"
+    });
+  }
+
+  return UdbxDataSource.create({
+    driver,
+    target: { kind: "file", path: options.path },
+    runtime: "electron"
+  });
 }
 
+export { BetterSqlite3Driver } from "./BetterSqlite3Driver";

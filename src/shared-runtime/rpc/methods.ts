@@ -8,6 +8,7 @@ export const RPC_METHODS = {
   udbxCreatePointDataset: "udbx.createPointDataset",
   udbxCreateLineDataset: "udbx.createLineDataset",
   udbxCreateRegionDataset: "udbx.createRegionDataset",
+  udbxCreateTabularDataset: "udbx.createTabularDataset",
   datasetGetFields: "dataset.getFields",
   datasetGetById: "dataset.getById",
   datasetList: "dataset.list",

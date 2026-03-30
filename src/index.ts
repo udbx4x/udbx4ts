@@ -4,6 +4,7 @@ export * from "./core/dataset/Dataset";
 export * from "./core/dataset/LineDataset";
 export * from "./core/dataset/PointDataset";
 export * from "./core/dataset/RegionDataset";
+export * from "./core/dataset/TabularDataset";
 export * from "./core/geometry/gaia/GaiaConstants";
 export * from "./core/geometry/gaia/GaiaErrors";
 export * from "./core/geometry/gaia/GaiaGeometryCodec";

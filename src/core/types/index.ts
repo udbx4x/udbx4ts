@@ -5,4 +5,5 @@ export * from "./FieldInfo";
 export * from "./FieldType";
 export * from "./Geometry";
 export * from "./QueryOptions";
+export * from "./TabularRecord";
 

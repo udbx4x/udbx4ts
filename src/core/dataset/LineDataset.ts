@@ -42,7 +42,7 @@ function mapLineRow<TAttributes extends Record<string, unknown>>(
 export class LineDataset<
     TAttributes extends Record<string, unknown> = Record<string, unknown>
   >
-  extends BaseDataset<LineFeature<TAttributes>>
+  extends BaseDataset
   implements WritableDataset<LineFeature<TAttributes>>
 {
   private readonly registerRepository: SmRegisterRepository;
@@ -112,45 +112,48 @@ export class LineDataset<
   async insertMany(
     features: Iterable<LineFeature<TAttributes>> | AsyncIterable<LineFeature<TAttributes>>
   ): Promise<void> {
-    const buffered: LineFeature<TAttributes>[] = [];
-
-    for await (const feature of features) {
-      buffered.push(feature);
-    }
-
-    if (buffered.length === 0) {
-      return;
-    }
-
     const userFields = await this.getFields();
     const columnNames = ["SmID", "SmUserID", "SmGeometry", ...userFields.map((field) => field.name)];
     const placeholders = columnNames.map(() => "?").join(", ");
     const sql = `INSERT INTO "${this.info.tableName}" (${columnNames.map((column) => `"${column}"`).join(", ")}) VALUES (${placeholders})`;
 
     await this.driver.transaction(async () => {
-      let maxGeometrySize = 0;
-      for (const feature of buffered) {
-        const geometry = GaiaLineCodec.writeMultiLineString(
-          feature.geometry,
-          feature.geometry.srid ?? this.info.srid ?? 0
-        );
-        maxGeometrySize = Math.max(maxGeometrySize, geometry.byteLength);
-        const params: SqlValue[] = [
-          feature.id,
-          0,
-          geometry,
-          ...userFields.map(
-            (field) => (feature.attributes[field.name] as SqlValue | undefined) ?? null
-          )
-        ];
-        await executeSql(this.driver, sql, params);
-      }
+      const statement = await this.driver.prepare(sql);
+      try {
+        let count = 0;
+        let maxGeometrySize = 0;
 
-      await this.registerRepository.incrementObjectCountBatch(
-        this.info.id,
-        buffered.length,
-        maxGeometrySize
-      );
+        for await (const feature of features) {
+          const geometry = GaiaLineCodec.writeMultiLineString(
+            feature.geometry,
+            feature.geometry.srid ?? this.info.srid ?? 0
+          );
+          maxGeometrySize = Math.max(maxGeometrySize, geometry.byteLength);
+          const params: SqlValue[] = [
+            feature.id,
+            0,
+            geometry,
+            ...userFields.map(
+              (field) => (feature.attributes[field.name] as SqlValue | undefined) ?? null
+            )
+          ];
+
+          await statement.bind(params);
+          await statement.step();
+          await statement.reset();
+          count++;
+        }
+
+        if (count > 0) {
+          await this.registerRepository.incrementObjectCountBatch(
+            this.info.id,
+            count,
+            maxGeometrySize
+          );
+        }
+      } finally {
+        await statement.finalize();
+      }
     });
   }
 

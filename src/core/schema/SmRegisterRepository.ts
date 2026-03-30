@@ -154,4 +154,11 @@ export class SmRegisterRepository {
       datasetId
     ]);
   }
+
+  async decrementObjectCount(datasetId: number): Promise<void> {
+    const statement = await this.driver.prepare(
+      "UPDATE SmRegister SET SmObjectCount = SmObjectCount - 1 WHERE SmDatasetID = ? AND SmObjectCount > 0"
+    );
+    await executeStatement(statement, [datasetId]);
+  }
 }

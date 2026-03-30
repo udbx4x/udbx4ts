@@ -18,9 +18,11 @@ describe("phase 1 project skeleton", () => {
     );
   });
 
-  it("marks electron runtime factory as pending implementation", async () => {
-    await expect(
-      createElectronUdbx({ path: "/tmp/example.udbx" })
-    ).rejects.toThrow(NotImplementedError);
+  it("electron runtime factory is now implemented", async () => {
+    // createElectronUdbx now requires better-sqlite3 which may not be installed
+    // in the test environment, so we verify the export exists
+    const mod = await import("../../src/runtime-electron/index");
+    expect(typeof mod.createElectronUdbx).toBe("function");
+    expect(typeof mod.BetterSqlite3Driver).toBe("function");
   });
 });

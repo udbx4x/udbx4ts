@@ -1,14 +1,35 @@
 # Browser Example
 
-浏览器示例正在逐步落地，目前已经具备 worker 侧 sqlite-wasm 运行时安装入口：
+使用 `udbx4ts/web` 在浏览器中读写 UDBX 空间数据库。
 
-- `installSqliteWasmWorkerRuntime(...)`
-- `installDefaultBrowserWorkerRuntime(...)`
-- `createBrowserUdbx(...)`
+## 快速开始
 
-建议 worker 入口（示例）：
+```bash
+# 从项目根目录
+pnpm install
+pnpm dev:browser
+```
 
-```ts
+打开终端输出的本地地址（默认 http://localhost:5173）。
+
+## 架构
+
+```
+主线程 (main.ts)
+  ↕ Worker postMessage (RPC)
+Worker (worker.ts)
+  ↕ sql.js WASM
+OPFS / 内存数据库
+```
+
+- **Worker**：通过 `installSqliteWasmWorkerRuntime()` 安装 RPC 运行时，使用 sql.js WASM 访问 SQLite
+- **主线程**：通过 `createBrowserUdbx(worker)` 获取 `UdbxDataSource` 代理，API 与直接使用一致
+- **OPFS**：优先使用 OPFS 持久化存储，不支持时回退到内存数据库
+
+## 关键代码
+
+```typescript
+// worker.ts
 import { installSqliteWasmWorkerRuntime } from "udbx4ts/web";
 
 installSqliteWasmWorkerRuntime(self, {
@@ -19,24 +40,18 @@ installSqliteWasmWorkerRuntime(self, {
 });
 ```
 
-当前目录仍用于持续补齐：
+```typescript
+// main.ts
+import { createBrowserUdbx } from "udbx4ts/web";
 
-- Worker 装载示例
-- `.udbx` 文件导入导出示例
-- OPFS 与 fallback 模式演示
-
-已提供初版示例文件：
-
-- [main.ts](/Users/zhangyuting/github/zhyt1985/udbx4ts/examples/browser/main.ts)
-- [worker.ts](/Users/zhangyuting/github/zhyt1985/udbx4ts/examples/browser/worker.ts)
-- [index.html](/Users/zhangyuting/github/zhyt1985/udbx4ts/examples/browser/index.html)
-- [vite.config.ts](/Users/zhangyuting/github/zhyt1985/udbx4ts/examples/browser/vite.config.ts)
-
-本地运行：
-
-```bash
-npm install
-npm run dev:browser
+const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+const ds = await createBrowserUdbx(worker, { kind: "memory" });
+const datasets = await ds.listDatasets();
 ```
 
-打开终端输出的本地地址（默认 [http://localhost:5173](http://localhost:5173)）。
+## 文件
+
+- `main.ts` — 主线程入口，创建 Worker 并演示 UDBX 操作
+- `worker.ts` — Worker 入口，安装 sql.js 运行时
+- `index.html` — 演示页面
+- `vite.config.ts` — Vite 构建配置

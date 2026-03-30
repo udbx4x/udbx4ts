@@ -43,6 +43,11 @@ interface CreateDatasetParams {
   readonly fields?: readonly unknown[];
 }
 
+interface CreateTabularDatasetParams {
+  readonly name: string;
+  readonly fields?: readonly unknown[];
+}
+
 export interface BrowserWorkerRuntimeOptions {
   readonly createDataSource: (params: OpenParams) => Promise<UdbxDataSource>;
   readonly replaceDataSource?: (params: ImportParams) => Promise<UdbxDataSource>;
@@ -149,6 +154,8 @@ export class BrowserWorkerRuntime {
         return this.createLineDataset(request as RuntimeRequest<CreateDatasetParams>);
       case RPC_METHODS.udbxCreateRegionDataset:
         return this.createRegionDataset(request as RuntimeRequest<CreateDatasetParams>);
+      case RPC_METHODS.udbxCreateTabularDataset:
+        return this.createTabularDataset(request as RuntimeRequest<CreateTabularDatasetParams>);
       case RPC_METHODS.datasetGetFields:
         return this.getFields(request as RuntimeRequest<DatasetNameParams>);
       case RPC_METHODS.datasetGetById:
@@ -356,6 +363,41 @@ export class BrowserWorkerRuntime {
       parsed.params.name,
       parsed.params.srid,
       parsed.params.fields
+    );
+    return createSuccess(request.id, dataset.info);
+  }
+
+  private async createTabularDataset(
+    request: RuntimeRequest<CreateTabularDatasetParams>
+  ): Promise<RuntimeResponse> {
+    const ds = this.requireDataSource(request.id);
+    if (!ds) {
+      return createFailure(
+        request.id,
+        "not_open",
+        "Datasource has not been opened."
+      );
+    }
+
+    const params = asObject(request.params);
+    const name = params.name;
+    if (typeof name !== "string" || name.length === 0) {
+      return createFailure(
+        request.id,
+        "invalid_params",
+        "Dataset name is required."
+      );
+    }
+
+    const fields = params.fields;
+    const parsedFields = this.parseFieldInfos(request.id, fields);
+    if ("error" in parsedFields) {
+      return parsedFields.error;
+    }
+
+    const dataset = await ds.createTabularDataset(
+      name,
+      parsedFields.fields
     );
     return createSuccess(request.id, dataset.info);
   }

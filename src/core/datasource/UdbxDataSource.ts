@@ -1,13 +1,14 @@
 import { LineDataset } from "../dataset/LineDataset";
 import { PointDataset } from "../dataset/PointDataset";
 import { RegionDataset } from "../dataset/RegionDataset";
+import { TabularDataset } from "../dataset/TabularDataset";
 import { UdbxSchemaInitializer } from "../schema/UdbxSchemaInitializer";
 import { SmRegisterRepository } from "../schema/SmRegisterRepository";
 import type { SqlDriver, SqlOpenTarget } from "../sql/SqlDriver";
 import type { DatasetInfo, FieldInfo } from "../types";
 
 export type UdbxRuntime = "browser" | "electron" | "unknown";
-export type UdbxDataset = PointDataset | LineDataset | RegionDataset;
+export type UdbxDataset = PointDataset | LineDataset | RegionDataset | TabularDataset;
 
 export class UdbxDataSource {
   private readonly registerRepository: SmRegisterRepository;
@@ -56,6 +57,8 @@ export class UdbxDataSource {
         return new LineDataset(this.driver, info);
       case "region":
         return new RegionDataset(this.driver, info);
+      case "tabular":
+        return new TabularDataset(this.driver, info);
       default:
         return null;
     }
@@ -103,6 +106,20 @@ export class UdbxDataSource {
           : { name, srid, fields };
 
       return RegionDataset.create(this.driver, this.registerRepository, params);
+    });
+  }
+
+  async createTabularDataset(
+    name: string,
+    fields?: readonly FieldInfo[]
+  ): Promise<TabularDataset> {
+    return this.driver.transaction(async () => {
+      const params =
+        fields === undefined
+          ? { name }
+          : { name, fields };
+
+      return TabularDataset.create(this.driver, this.registerRepository, params);
     });
   }
 

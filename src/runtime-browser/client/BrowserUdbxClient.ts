@@ -76,6 +76,26 @@ export class BrowserUdbxClient {
     return this.createDatasetByMethod(RPC_METHODS.udbxCreateRegionDataset, name, srid, fields);
   }
 
+  async createTabularDataset(
+    name: string,
+    fields?: readonly FieldInfo[]
+  ): Promise<Dataset> {
+    const params = {
+      name,
+      ...(fields === undefined ? {} : { fields })
+    };
+
+    const info = await this.transport.request<
+      DatasetInfo,
+      {
+        readonly name: string;
+        readonly fields?: readonly FieldInfo[];
+      }
+    >(RPC_METHODS.udbxCreateTabularDataset, params);
+
+    return new BrowserDatasetClient(this.transport, info);
+  }
+
   async close(): Promise<void> {
     await this.transport.request<void>(RPC_METHODS.udbxClose);
     await this.transport.close();

@@ -1,0 +1,20 @@
+{
+  "name": "udbx4ts-electron-example",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron demo for udbx4ts - UDBX spatial database",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron dist/main.js",
+    "dev": "tsc && electron dist/main.js"
+  },
+  "dependencies": {
+    "udbx4ts": "file:../..",
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "typescript": "^5.8.0"
+  }
+}
