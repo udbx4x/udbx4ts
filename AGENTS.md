@@ -2,7 +2,7 @@
 
 本文件是 `udbx4ts` 仓库中 AI 智能体的执行入口。
 
-进入本仓库后，所有智能体都应先阅读本文件，再按引用文档继续工作。
+进入本仓库后，所有智能体都应先阅读本文件，再阅读 CLAUDE.md 继续工作。
 
 ## 1. 项目目标
 
@@ -16,17 +16,8 @@
 
 ## 2. 必读文档顺序
 
-1. [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md)
-2. [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md)
-3. [development-standards/README.md](./development-standards/README.md)
-
-如果任务涉及特定主题，再继续阅读对应规范：
-
-- 模块边界：[01-module-boundaries.md](./development-standards/01-module-boundaries.md)
-- GAIA codec：[02-gaia-codec-and-binary.md](./development-standards/02-gaia-codec-and-binary.md)
-- SQL 与运行时：[03-sql-and-runtime-implementation.md](./development-standards/03-sql-and-runtime-implementation.md)
-- 测试与兼容性：[04-testing-and-compatibility.md](./development-standards/04-testing-and-compatibility.md)
-- 协作边界：[05-agent-collaboration-boundaries.md](./development-standards/05-agent-collaboration-boundaries.md)
+1. [CLAUDE.md](./CLAUDE.md) — 项目架构、命令、关键约束
+2. [README.md](./README.md) — 项目介绍、API 概览、使用示例
 
 ## 3. 当前架构基线
 
@@ -40,21 +31,13 @@
 - 对外 API 统一使用异步接口
 - 项目初期采用单包多入口，不擅自拆为 Monorepo
 
-## 4. 当前开发优先级
+## 4. 当前支持的数据集类型
 
-优先级顺序固定为：
-
-1. 工程骨架与接口契约
-2. 二进制基础设施
-3. GAIA codec
-4. 系统表与元数据仓储
-5. 核心数据源与 2D/3D 点线面数据集（含 PointZDataset、LineZDataset、RegionZDataset）
-6. CAD 数据集（CadDataset）
-7. 浏览器运行时闭环
-8. Electron 运行时闭环
-9. 测试、兼容性与稳定化
-
-当前支持的数据集类型：PointDataset、LineDataset、RegionDataset、TabularDataset、PointZDataset、LineZDataset、RegionZDataset、CadDataset。
+- `PointDataset` / `PointZDataset` — 2D/3D 点数据集
+- `LineDataset` / `LineZDataset` — 2D/3D 线数据集
+- `RegionDataset` / `RegionZDataset` — 2D/3D 面数据集
+- `TabularDataset` — 纯属性表数据集
+- `CadDataset` — CAD 几何数据集
 
 ## 5. 关键约束
 
@@ -85,7 +68,7 @@
 
 如果你在多角色 agent team 中：
 
-- 按 [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md) 的角色与任务边界执行
+- 明确角色与任务边界
 - 不跨角色大范围重写代码
 - 不在契约未冻结前并行开发强依赖模块
 
@@ -93,19 +76,18 @@
 
 提交前至少检查：
 
-1. 是否符合技术方案
-2. 是否符合对应开发规范
-3. 是否补齐测试或说明未补原因
-4. 是否引入了计划外范围
-5. 是否会影响其他角色的任务边界
+1. 是否符合 CLAUDE.md 中的架构约束
+2. 是否补齐测试或说明未补原因
+3. 是否引入了计划外范围
+4. 是否会影响其他角色的任务边界
 
 ## 8. 发生冲突时的决策顺序
 
 优先级从高到低为：
 
 1. 当前用户明确要求
-2. [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md)
-3. [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md)
-4. `development-standards/` 下的各项规范
+2. [CLAUDE.md](./CLAUDE.md)
+3. [README.md](./README.md)
+4. `udbx4spec/docs/` 中的跨语言规范
 
-如果发现文档之间冲突，不要自行猜测扩展方向，应先收敛到技术方案并补齐文档。
+如果发现文档之间冲突，不要自行猜测扩展方向。
