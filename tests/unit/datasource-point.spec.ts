@@ -143,7 +143,7 @@ describe("UdbxDataSource", () => {
     const dataset = await ds.createPointDataset("Cities", 4326, [
       {
         name: "NAME",
-        fieldType: "string",
+        fieldType: "text",
         nullable: false
       }
     ]);

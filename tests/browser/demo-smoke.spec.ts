@@ -17,7 +17,7 @@ async function createImportFixture(): Promise<string> {
   });
 
   await ds.createPointDataset("ImportedPOI", 4326, [
-    { name: "NAME", fieldType: "string", nullable: false }
+    { name: "NAME", fieldType: "text", nullable: false }
   ]);
   await ds.close();
 

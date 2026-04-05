@@ -4,7 +4,7 @@
 
 本规范用于约束多角色 AI 智能体在 `udbx4ts` 项目中的协作方式，避免并行开发时出现接口漂移、职责重叠和重复实现。
 
-本规范只服务于 [AGENT_TEAM_EXECUTION_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/AGENT_TEAM_EXECUTION_PLAN.md) 已定义的角色体系。
+本规范只服务于 [AGENT_TEAM_EXECUTION_PLAN.md](../AGENT_TEAM_EXECUTION_PLAN.md) 已定义的角色体系。
 
 ## 2. 协作基线
 

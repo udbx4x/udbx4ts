@@ -154,6 +154,73 @@ export class PointDataset<
     });
   }
 
+  async count(): Promise<number> {
+    const row = await queryOne<{ readonly count: number }>(
+      this.driver,
+      `SELECT COUNT(*) AS count FROM "${this.info.tableName}"`,
+      []
+    );
+    return row?.count ?? 0;
+  }
+
+  async update(
+    id: number,
+    changes: {
+      geometry?: PointGeometry;
+      attributes?: Partial<TAttributes>;
+    }
+  ): Promise<void> {
+    if (!changes.geometry && !changes.attributes) {
+      return;
+    }
+
+    const setClauses: string[] = [];
+    const params: SqlValue[] = [];
+
+    if (changes.geometry) {
+      const geometry = GaiaPointCodec.writePoint(
+        changes.geometry,
+        changes.geometry.srid ?? this.info.srid ?? 0
+      );
+      setClauses.push('"SmGeometry" = ?');
+      params.push(geometry);
+    }
+
+    if (changes.attributes) {
+      const userFields = await this.getFields();
+      const fieldNames = new Set(userFields.map((f) => f.name));
+      const validEntries = Object.entries(changes.attributes).filter(([key]) =>
+        fieldNames.has(key)
+      );
+      for (const [key, value] of validEntries) {
+        setClauses.push(`"${key}" = ?`);
+        params.push(value as SqlValue);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      return;
+    }
+
+    const sql = `UPDATE "${this.info.tableName}" SET ${setClauses.join(", ")} WHERE SmID = ?`;
+    params.push(id);
+
+    await this.driver.transaction(async () => {
+      await executeSql(this.driver, sql, params);
+    });
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.driver.transaction(async () => {
+      await executeSql(
+        this.driver,
+        `DELETE FROM "${this.info.tableName}" WHERE SmID = ?`,
+        [id]
+      );
+      await this.registerRepository.decrementObjectCount(this.info.id);
+    });
+  }
+
   static async create(
     driver: SqlDriver,
     registerRepository: SmRegisterRepository,

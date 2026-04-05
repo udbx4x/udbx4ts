@@ -79,4 +79,31 @@ export class BrowserDatasetClient<
       features: buffer
     });
   }
+
+  async count(): Promise<number> {
+    return this.transport.request<number, DatasetMethodParams>(
+      RPC_METHODS.datasetCount,
+      { datasetName: this.info.name }
+    );
+  }
+
+  async update(
+    id: number,
+    changes: {
+      geometry?: TFeature extends { geometry: infer G } ? G : unknown;
+      attributes?: Partial<TFeature extends { attributes: infer A } ? A : unknown>;
+    }
+  ): Promise<void> {
+    await this.transport.request<
+      void,
+      DatasetMethodParams & { readonly id: number; readonly changes: unknown }
+    >(RPC_METHODS.datasetUpdate, { datasetName: this.info.name, id, changes });
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.transport.request<
+      void,
+      DatasetMethodParams & { readonly id: number }
+    >(RPC_METHODS.datasetDelete, { datasetName: this.info.name, id });
+  }
 }

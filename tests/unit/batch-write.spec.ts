@@ -15,7 +15,7 @@ describe("Batch write optimization", () => {
   it("insertMany uses prepared statement for points", async () => {
     const ds = await createTestDataSource();
     const pointDs = await ds.createPointDataset("batch_points", 4326, [
-      { name: "NAME", fieldType: "string", nullable: true }
+      { name: "NAME", fieldType: "text", nullable: true }
     ]);
 
     const features = Array.from({ length: 100 }, (_, i) => ({
@@ -39,7 +39,7 @@ describe("Batch write optimization", () => {
   it("insertMany uses prepared statement for regions", async () => {
     const ds = await createTestDataSource();
     const regionDs = await ds.createRegionDataset("batch_regions", 4326, [
-      { name: "NAME", fieldType: "string", nullable: true }
+      { name: "NAME", fieldType: "text", nullable: true }
     ]);
 
     const features = Array.from({ length: 50 }, (_, i) => ({
@@ -64,7 +64,7 @@ describe("Batch write optimization", () => {
   it("insertMany uses prepared statement for tabular records", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("batch_tabular", [
-      { name: "NAME", fieldType: "string", nullable: true },
+      { name: "NAME", fieldType: "text", nullable: true },
       { name: "VALUE", fieldType: "int32", nullable: true }
     ]);
 
@@ -117,7 +117,7 @@ describe("Batch write optimization", () => {
   it("update() only updates registered fields", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("update_test", [
-      { name: "NAME", fieldType: "string", nullable: true },
+      { name: "NAME", fieldType: "text", nullable: true },
       { name: "VALUE", fieldType: "int32", nullable: true }
     ]);
 
@@ -136,7 +136,7 @@ describe("Batch write optimization", () => {
   it("update() ignores all invalid fields silently", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("update_noop_test", [
-      { name: "NAME", fieldType: "string", nullable: true }
+      { name: "NAME", fieldType: "text", nullable: true }
     ]);
 
     await tabularDs.insert({ id: 1, attributes: { NAME: "Original" } });
@@ -151,7 +151,7 @@ describe("Batch write optimization", () => {
   it("delete() removes record and decrements objectCount", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("delete_test", [
-      { name: "NAME", fieldType: "string", nullable: true }
+      { name: "NAME", fieldType: "text", nullable: true }
     ]);
 
     await tabularDs.insertMany([

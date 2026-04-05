@@ -4,8 +4,8 @@
 
 这些规范只约束 `udbx4ts` 当前技术方案中最关键的实现问题，不作为通用软件工程手册使用。所有规范都必须与以下文档保持一致：
 
-- [TECHNICAL_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/TECHNICAL_PLAN.md)
-- [AGENT_TEAM_EXECUTION_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/AGENT_TEAM_EXECUTION_PLAN.md)
+- [TECHNICAL_PLAN.md](../TECHNICAL_PLAN.md)
+- [AGENT_TEAM_EXECUTION_PLAN.md](../AGENT_TEAM_EXECUTION_PLAN.md)
 
 ## 适用范围
 
@@ -26,11 +26,11 @@
 
 ## 规范列表
 
-- [01-module-boundaries.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/01-module-boundaries.md)
-- [02-gaia-codec-and-binary.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/02-gaia-codec-and-binary.md)
-- [03-sql-and-runtime-implementation.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/03-sql-and-runtime-implementation.md)
-- [04-testing-and-compatibility.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/04-testing-and-compatibility.md)
-- [05-agent-collaboration-boundaries.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/05-agent-collaboration-boundaries.md)
+- [01-module-boundaries.md](./01-module-boundaries.md)
+- [02-gaia-codec-and-binary.md](./02-gaia-codec-and-binary.md)
+- [03-sql-and-runtime-implementation.md](./03-sql-and-runtime-implementation.md)
+- [04-testing-and-compatibility.md](./04-testing-and-compatibility.md)
+- [05-agent-collaboration-boundaries.md](./05-agent-collaboration-boundaries.md)
 
 ## 使用规则
 

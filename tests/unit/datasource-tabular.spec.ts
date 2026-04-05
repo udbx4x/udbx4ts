@@ -102,7 +102,7 @@ describe("UdbxDataSource tabular support", () => {
 
     const ds = new UdbxDataSource(driver);
     const dataset = await ds.createTabularDataset("Cities", [
-      { name: "NAME", fieldType: "string", nullable: false },
+      { name: "NAME", fieldType: "text", nullable: false },
       { name: "POPULATION", fieldType: "int32", nullable: true }
     ]);
 

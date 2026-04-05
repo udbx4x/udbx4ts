@@ -61,11 +61,14 @@ interface DatasetReadableShape {
   getFields: () => Promise<readonly unknown[]>;
   getById: (id: number) => Promise<unknown | null>;
   list: (options?: unknown) => Promise<readonly unknown[]>;
+  count: () => Promise<number>;
 }
 
 interface DatasetWritableShape extends DatasetReadableShape {
   insert: (feature: unknown) => Promise<void>;
   insertMany: (features: readonly unknown[]) => Promise<void>;
+  update: (id: number, changes: unknown) => Promise<void>;
+  delete: (id: number) => Promise<void>;
 }
 
 function asReadableDataset(dataset: Dataset): DatasetReadableShape {
@@ -109,14 +112,19 @@ function parseDatasetName(params: unknown): string | null {
 
 const VALID_FIELD_TYPES = new Set<FieldType>([
   "boolean",
+  "byte",
   "int16",
   "int32",
   "int64",
-  "float",
+  "single",
   "double",
-  "string",
   "date",
-  "binary"
+  "binary",
+  "geometry",
+  "char",
+  "ntext",
+  "text",
+  "time"
 ]);
 
 export class BrowserWorkerRuntime {
@@ -154,8 +162,16 @@ export class BrowserWorkerRuntime {
         return this.createLineDataset(request as RuntimeRequest<CreateDatasetParams>);
       case RPC_METHODS.udbxCreateRegionDataset:
         return this.createRegionDataset(request as RuntimeRequest<CreateDatasetParams>);
+      case RPC_METHODS.udbxCreatePointZDataset:
+        return this.createPointZDataset(request as RuntimeRequest<CreateDatasetParams>);
+      case RPC_METHODS.udbxCreateLineZDataset:
+        return this.createLineZDataset(request as RuntimeRequest<CreateDatasetParams>);
+      case RPC_METHODS.udbxCreateRegionZDataset:
+        return this.createRegionZDataset(request as RuntimeRequest<CreateDatasetParams>);
       case RPC_METHODS.udbxCreateTabularDataset:
         return this.createTabularDataset(request as RuntimeRequest<CreateTabularDatasetParams>);
+      case RPC_METHODS.udbxCreateCadDataset:
+        return this.createCadDataset(request as RuntimeRequest<CreateTabularDatasetParams>);
       case RPC_METHODS.datasetGetFields:
         return this.getFields(request as RuntimeRequest<DatasetNameParams>);
       case RPC_METHODS.datasetGetById:
@@ -166,6 +182,12 @@ export class BrowserWorkerRuntime {
         return this.insert(request as RuntimeRequest<DatasetInsertParams>);
       case RPC_METHODS.datasetInsertMany:
         return this.insertMany(request as RuntimeRequest<DatasetInsertManyParams>);
+      case RPC_METHODS.datasetCount:
+        return this.count(request as RuntimeRequest<DatasetNameParams>);
+      case RPC_METHODS.datasetUpdate:
+        return this.update(request as RuntimeRequest<DatasetInsertParams>);
+      case RPC_METHODS.datasetDelete:
+        return this.delete(request as RuntimeRequest<DatasetGetByIdParams>);
       default:
         return createFailure(
           request.id,
@@ -402,6 +424,116 @@ export class BrowserWorkerRuntime {
     return createSuccess(request.id, dataset.info);
   }
 
+  private async createPointZDataset(
+    request: RuntimeRequest<CreateDatasetParams>
+  ): Promise<RuntimeResponse> {
+    const ds = this.requireDataSource(request.id);
+    if (!ds) {
+      return createFailure(
+        request.id,
+        "not_open",
+        "Datasource has not been opened."
+      );
+    }
+
+    const parsed = this.parseCreateDatasetParams(request);
+    if ("error" in parsed) {
+      return parsed.error;
+    }
+
+    const dataset = await ds.createPointZDataset(
+      parsed.params.name,
+      parsed.params.srid,
+      parsed.params.fields
+    );
+    return createSuccess(request.id, dataset.info);
+  }
+
+  private async createLineZDataset(
+    request: RuntimeRequest<CreateDatasetParams>
+  ): Promise<RuntimeResponse> {
+    const ds = this.requireDataSource(request.id);
+    if (!ds) {
+      return createFailure(
+        request.id,
+        "not_open",
+        "Datasource has not been opened."
+      );
+    }
+
+    const parsed = this.parseCreateDatasetParams(request);
+    if ("error" in parsed) {
+      return parsed.error;
+    }
+
+    const dataset = await ds.createLineZDataset(
+      parsed.params.name,
+      parsed.params.srid,
+      parsed.params.fields
+    );
+    return createSuccess(request.id, dataset.info);
+  }
+
+  private async createRegionZDataset(
+    request: RuntimeRequest<CreateDatasetParams>
+  ): Promise<RuntimeResponse> {
+    const ds = this.requireDataSource(request.id);
+    if (!ds) {
+      return createFailure(
+        request.id,
+        "not_open",
+        "Datasource has not been opened."
+      );
+    }
+
+    const parsed = this.parseCreateDatasetParams(request);
+    if ("error" in parsed) {
+      return parsed.error;
+    }
+
+    const dataset = await ds.createRegionZDataset(
+      parsed.params.name,
+      parsed.params.srid,
+      parsed.params.fields
+    );
+    return createSuccess(request.id, dataset.info);
+  }
+
+  private async createCadDataset(
+    request: RuntimeRequest<CreateTabularDatasetParams>
+  ): Promise<RuntimeResponse> {
+    const ds = this.requireDataSource(request.id);
+    if (!ds) {
+      return createFailure(
+        request.id,
+        "not_open",
+        "Datasource has not been opened."
+      );
+    }
+
+    const params = asObject(request.params);
+    const name = params.name;
+    if (typeof name !== "string" || name.length === 0) {
+      return createFailure(
+        request.id,
+        "invalid_params",
+        "Dataset name is required."
+      );
+    }
+
+    const fields = params.fields;
+    const parsedFields = this.parseFieldInfos(request.id, fields);
+    if ("error" in parsedFields) {
+      return parsedFields.error;
+    }
+
+    const dataset = await ds.createCadDataset(
+      name,
+      parsedFields.fields
+    );
+    return createSuccess(request.id, dataset.info);
+  }
+
   private async getFields(
     request: RuntimeRequest<DatasetNameParams>
   ): Promise<RuntimeResponse> {
@@ -498,6 +630,101 @@ export class BrowserWorkerRuntime {
     }
 
     await writable.insertMany(features);
+    return createSuccess(request.id, undefined);
+  }
+
+  private async count(
+    request: RuntimeRequest<DatasetNameParams>
+  ): Promise<RuntimeResponse> {
+    const dataset = await this.requireDataset(request);
+    if ("error" in dataset) {
+      return dataset.error;
+    }
+
+    const readable = asReadableDataset(dataset.dataset);
+    if (typeof readable.count !== "function") {
+      return createFailure(
+        request.id,
+        "unsupported_operation",
+        `Dataset "${dataset.dataset.info.name}" does not support count.`
+      );
+    }
+
+    const result = await readable.count();
+    return createSuccess(request.id, result);
+  }
+
+  private async update(
+    request: RuntimeRequest<DatasetInsertParams>
+  ): Promise<RuntimeResponse> {
+    const dataset = await this.requireDataset(request);
+    if ("error" in dataset) {
+      return dataset.error;
+    }
+
+    const writable = asWritableDataset(dataset.dataset);
+    if (typeof writable.update !== "function") {
+      return createFailure(
+        request.id,
+        "not_writable",
+        `Dataset "${dataset.dataset.info.name}" is not writable.`
+      );
+    }
+
+    const params = asObject(request.params);
+    const feature = params.feature;
+    if (typeof feature !== "object" || feature === null) {
+      return createFailure(
+        request.id,
+        "invalid_params",
+        "`feature` is required."
+      );
+    }
+
+    const id = (feature as Record<string, unknown>).id;
+    if (typeof id !== "number") {
+      return createFailure(
+        request.id,
+        "invalid_params",
+        "Feature `id` is required for update."
+      );
+    }
+
+    const changes: Record<string, unknown> = {};
+    if ("geometry" in feature) {
+      changes.geometry = (feature as Record<string, unknown>).geometry;
+    }
+    if ("attributes" in feature) {
+      changes.attributes = (feature as Record<string, unknown>).attributes;
+    }
+
+    await writable.update(id, changes);
+    return createSuccess(request.id, undefined);
+  }
+
+  private async delete(
+    request: RuntimeRequest<DatasetGetByIdParams>
+  ): Promise<RuntimeResponse> {
+    const dataset = await this.requireDataset(request);
+    if ("error" in dataset) {
+      return dataset.error;
+    }
+
+    const writable = asWritableDataset(dataset.dataset);
+    if (typeof writable.delete !== "function") {
+      return createFailure(
+        request.id,
+        "not_writable",
+        `Dataset "${dataset.dataset.info.name}" is not writable.`
+      );
+    }
+
+    const id = asObject(request.params).id;
+    if (typeof id !== "number") {
+      return createFailure(request.id, "invalid_params", "Feature id is required.");
+    }
+
+    await writable.delete(id);
     return createSuccess(request.id, undefined);
   }
 
@@ -617,7 +844,6 @@ export class BrowserWorkerRuntime {
       const row = asObject(item);
       const name = row.name;
       const fieldType = row.fieldType;
-      const nullable = row.nullable;
 
       if (typeof name !== "string" || name.length === 0) {
         return {
@@ -631,27 +857,25 @@ export class BrowserWorkerRuntime {
         };
       }
 
-      if (typeof nullable !== "boolean") {
-        return {
-          error: createFailure(id, "invalid_params", "Field nullable flag is required.")
-        };
-      }
-
-      if ("defaultValue" in row) {
-        parsed.push({
-          name,
-          fieldType: fieldType as FieldType,
-          nullable,
-          defaultValue: row.defaultValue
-        });
-        continue;
-      }
-
-      parsed.push({
+      const info: Record<string, unknown> = {
         name,
-        fieldType: fieldType as FieldType,
-        nullable
-      });
+        fieldType: fieldType as FieldType
+      };
+
+      if ("alias" in row && typeof row.alias === "string") {
+        info.alias = row.alias;
+      }
+      if ("required" in row && typeof row.required === "boolean") {
+        info.required = row.required;
+      }
+      if ("nullable" in row && typeof row.nullable === "boolean") {
+        info.nullable = row.nullable;
+      }
+      if ("defaultValue" in row) {
+        info.defaultValue = row.defaultValue;
+      }
+
+      parsed.push(info as unknown as FieldInfo);
     }
 
     return { fields: parsed };

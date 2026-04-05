@@ -1,9 +1,9 @@
 import type { SqlDriver } from "../sql/SqlDriver";
 import type { DatasetInfo, FieldInfo } from "../types";
 import { SmFieldInfoRepository } from "../schema/SmFieldInfoRepository";
-import type { DatasetInfoProvider } from "./Dataset";
+import type { Dataset } from "./Dataset";
 
-export abstract class BaseDataset implements DatasetInfoProvider {
+export abstract class BaseDataset implements Dataset {
   protected readonly fieldInfoRepository: SmFieldInfoRepository;
 
   constructor(

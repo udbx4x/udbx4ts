@@ -1,11 +1,16 @@
 export type FieldType =
   | "boolean"
+  | "byte"
   | "int16"
   | "int32"
   | "int64"
-  | "float"
+  | "single"
   | "double"
-  | "string"
   | "date"
-  | "binary";
+  | "binary"
+  | "geometry"
+  | "char"
+  | "ntext"
+  | "text"
+  | "time";
 

@@ -33,7 +33,9 @@ describe("GaiaGeometryCodec", () => {
     const geometry = GaiaGeometryCodec.decode(hexToBytes(pointHex));
 
     expect(geometry.type).toBe("Point");
-    expect(geometry.coordinates).toEqual([116.123, 39.456]);
+    if (geometry.type === "Point") {
+      expect(geometry.coordinates).toEqual([116.123, 39.456]);
+    }
   });
 
   it("auto-selects the encoder based on geometry type and dimensionality", () => {

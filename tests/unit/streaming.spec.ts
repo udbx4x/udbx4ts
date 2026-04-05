@@ -18,7 +18,7 @@ describe("Streaming reads", () => {
     });
 
     const pointDs = await ds.createPointDataset("Points", 4326, [
-      { name: "NAME", fieldType: "string", nullable: true }
+      { name: "NAME", fieldType: "text", nullable: true }
     ]);
 
     const blob = GaiaPointCodec.writePoint(

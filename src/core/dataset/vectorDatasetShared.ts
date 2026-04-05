@@ -42,17 +42,22 @@ export function buildListSql(
 export function sqliteColumnType(field: FieldInfo): string {
   switch (field.fieldType) {
     case "boolean":
+    case "byte":
     case "int16":
     case "int32":
     case "int64":
       return "INTEGER";
-    case "float":
+    case "single":
     case "double":
       return "REAL";
     case "binary":
+    case "geometry":
       return "BLOB";
     case "date":
-    case "string":
+    case "char":
+    case "ntext":
+    case "text":
+    case "time":
     default:
       return "TEXT";
   }

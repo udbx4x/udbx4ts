@@ -79,7 +79,7 @@ createBtn?.addEventListener("click", async () => {
   try {
     const db = await ensureDataSource();
     await db.createPointDataset("DemoPOI", 4326, [
-      { name: "NAME", fieldType: "string", nullable: false }
+      { name: "NAME", fieldType: "text", nullable: false }
     ]);
     log("已创建示例点数据集 DemoPOI。");
     await refreshDatasets();

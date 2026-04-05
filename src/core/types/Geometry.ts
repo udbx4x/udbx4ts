@@ -26,7 +26,22 @@ export interface MultiPolygonGeometry extends GeometryBase {
       >;
 }
 
+export interface CadGeometry extends GeometryBase {
+  readonly type: "Cad";
+  readonly coordinates: readonly number[];
+}
+
+export interface TextGeometry extends GeometryBase {
+  readonly type: "Text";
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly rotation?: number;
+}
+
 export type Geometry =
   | PointGeometry
   | MultiLineStringGeometry
-  | MultiPolygonGeometry;
+  | MultiPolygonGeometry
+  | CadGeometry
+  | TextGeometry;

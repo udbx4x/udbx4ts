@@ -17,7 +17,7 @@ async function createRuntimeWithCitiesDataset(): Promise<BrowserWorkerRuntime> {
       });
 
       await ds.createPointDataset("Cities", 4326, [
-        { name: "NAME", fieldType: "string", nullable: false }
+        { name: "NAME", fieldType: "text", nullable: false }
       ]);
 
       return ds;
@@ -35,7 +35,7 @@ async function createRuntimeWithImportSupport(): Promise<BrowserWorkerRuntime> {
     });
 
     await ds.createPointDataset(name, 4326, [
-      { name: "NAME", fieldType: "string", nullable: false }
+      { name: "NAME", fieldType: "text", nullable: false }
     ]);
     return ds;
   };
@@ -129,7 +129,7 @@ describe("BrowserWorkerRuntime", () => {
     const created = await callRpc(runtime, RPC_METHODS.udbxCreatePointDataset, {
       name: "POI",
       srid: 4326,
-      fields: [{ name: "NAME", fieldType: "string", nullable: false }]
+      fields: [{ name: "NAME", fieldType: "text", nullable: false }]
     });
 
     const info = await callRpc(runtime, RPC_METHODS.udbxGetDatasetInfo, {

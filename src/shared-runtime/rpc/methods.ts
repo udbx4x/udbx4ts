@@ -8,10 +8,17 @@ export const RPC_METHODS = {
   udbxCreatePointDataset: "udbx.createPointDataset",
   udbxCreateLineDataset: "udbx.createLineDataset",
   udbxCreateRegionDataset: "udbx.createRegionDataset",
+  udbxCreatePointZDataset: "udbx.createPointZDataset",
+  udbxCreateLineZDataset: "udbx.createLineZDataset",
+  udbxCreateRegionZDataset: "udbx.createRegionZDataset",
   udbxCreateTabularDataset: "udbx.createTabularDataset",
+  udbxCreateCadDataset: "udbx.createCadDataset",
   datasetGetFields: "dataset.getFields",
   datasetGetById: "dataset.getById",
   datasetList: "dataset.list",
   datasetInsert: "dataset.insert",
-  datasetInsertMany: "dataset.insertMany"
+  datasetInsertMany: "dataset.insertMany",
+  datasetCount: "dataset.count",
+  datasetUpdate: "dataset.update",
+  datasetDelete: "dataset.delete"
 } as const;

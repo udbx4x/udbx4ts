@@ -16,17 +16,17 @@
 
 ## 2. 必读文档顺序
 
-1. [TECHNICAL_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/TECHNICAL_PLAN.md)
-2. [AGENT_TEAM_EXECUTION_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/AGENT_TEAM_EXECUTION_PLAN.md)
-3. [development-standards/README.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/README.md)
+1. [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md)
+2. [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md)
+3. [development-standards/README.md](./development-standards/README.md)
 
 如果任务涉及特定主题，再继续阅读对应规范：
 
-- 模块边界：[01-module-boundaries.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/01-module-boundaries.md)
-- GAIA codec：[02-gaia-codec-and-binary.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/02-gaia-codec-and-binary.md)
-- SQL 与运行时：[03-sql-and-runtime-implementation.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/03-sql-and-runtime-implementation.md)
-- 测试与兼容性：[04-testing-and-compatibility.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/04-testing-and-compatibility.md)
-- 协作边界：[05-agent-collaboration-boundaries.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/development-standards/05-agent-collaboration-boundaries.md)
+- 模块边界：[01-module-boundaries.md](./development-standards/01-module-boundaries.md)
+- GAIA codec：[02-gaia-codec-and-binary.md](./development-standards/02-gaia-codec-and-binary.md)
+- SQL 与运行时：[03-sql-and-runtime-implementation.md](./development-standards/03-sql-and-runtime-implementation.md)
+- 测试与兼容性：[04-testing-and-compatibility.md](./development-standards/04-testing-and-compatibility.md)
+- 协作边界：[05-agent-collaboration-boundaries.md](./development-standards/05-agent-collaboration-boundaries.md)
 
 ## 3. 当前架构基线
 
@@ -48,16 +48,13 @@
 2. 二进制基础设施
 3. GAIA codec
 4. 系统表与元数据仓储
-5. 核心数据源与 2D 点线面数据集
-6. 浏览器运行时闭环
-7. Electron 运行时闭环
-8. 测试、兼容性与稳定化
+5. 核心数据源与 2D/3D 点线面数据集（含 PointZDataset、LineZDataset、RegionZDataset）
+6. CAD 数据集（CadDataset）
+7. 浏览器运行时闭环
+8. Electron 运行时闭环
+9. 测试、兼容性与稳定化
 
-在 2D 点线面闭环稳定之前，不优先扩展：
-
-- CAD
-- 3D 数据集
-- 性能优化型重构
+当前支持的数据集类型：PointDataset、LineDataset、RegionDataset、TabularDataset、PointZDataset、LineZDataset、RegionZDataset、CadDataset。
 
 ## 5. 关键约束
 
@@ -88,7 +85,7 @@
 
 如果你在多角色 agent team 中：
 
-- 按 [AGENT_TEAM_EXECUTION_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/AGENT_TEAM_EXECUTION_PLAN.md) 的角色与任务边界执行
+- 按 [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md) 的角色与任务边界执行
 - 不跨角色大范围重写代码
 - 不在契约未冻结前并行开发强依赖模块
 
@@ -107,8 +104,8 @@
 优先级从高到低为：
 
 1. 当前用户明确要求
-2. [TECHNICAL_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/TECHNICAL_PLAN.md)
-3. [AGENT_TEAM_EXECUTION_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/AGENT_TEAM_EXECUTION_PLAN.md)
+2. [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md)
+3. [AGENT_TEAM_EXECUTION_PLAN.md](./AGENT_TEAM_EXECUTION_PLAN.md)
 4. `development-standards/` 下的各项规范
 
 如果发现文档之间冲突，不要自行猜测扩展方向，应先收敛到技术方案并补齐文档。

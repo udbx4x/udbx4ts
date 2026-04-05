@@ -133,7 +133,7 @@ describe("runtime-browser client", () => {
     const dataset = await ds.getDataset("Cities");
     const feature = await dataset?.getById(1);
     const created = await ds.createPointDataset("POI", 4326, [
-      { name: "NAME", fieldType: "string", nullable: false }
+      { name: "NAME", fieldType: "text", nullable: false }
     ]);
     const binary = await ds.exportDatabase();
     await ds.importDatabase(new Uint8Array([1, 2, 3]), { preferOpfs: false });

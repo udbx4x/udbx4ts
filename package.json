@@ -1,6 +1,6 @@
 {
   "name": "udbx4ts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "TypeScript UDBX runtime for Web and Electron.",
@@ -51,7 +51,8 @@
     "vitest": "^3.2.0"
   },
   "dependencies": {
-    "@sqlite.org/sqlite-wasm": "^3.51.2-build8"
+    "@sqlite.org/sqlite-wasm": "^3.51.2-build8",
+    "jsts": "^2.11.0"
   },
   "peerDependencies": {
     "better-sqlite3": ">=9.0.0"

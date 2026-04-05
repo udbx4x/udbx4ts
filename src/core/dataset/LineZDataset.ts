@@ -1,4 +1,4 @@
-import { GaiaPolygonCodec } from "../geometry/gaia/GaiaPolygonCodec";
+import { GaiaLineCodec } from "../geometry/gaia/GaiaLineCodec";
 import { SmFieldInfoRepository } from "../schema/SmFieldInfoRepository";
 import { SmRegisterRepository } from "../schema/SmRegisterRepository";
 import { executeSql, queryAll, queryOne } from "../sql/SqlHelpers";
@@ -7,7 +7,7 @@ import type {
   DatasetInfo,
   Feature,
   FieldInfo,
-  MultiPolygonGeometry,
+  MultiLineStringGeometry,
   QueryOptions
 } from "../types";
 import { BaseDataset } from "./BaseDataset";
@@ -18,32 +18,32 @@ import {
   sqliteColumnType
 } from "./vectorDatasetShared";
 
-export type RegionFeature<
+export type LineZFeature<
   TAttributes extends Record<string, unknown> = Record<string, unknown>
-> = Feature<MultiPolygonGeometry, TAttributes>;
+> = Feature<MultiLineStringGeometry, TAttributes>;
 
-interface RegionDatasetRow extends Record<string, unknown> {
+interface LineZDatasetRow extends Record<string, unknown> {
   readonly SmID: number;
   readonly SmGeometry: Uint8Array | ArrayBuffer;
 }
 
-function mapRegionRow<TAttributes extends Record<string, unknown>>(
-  row: RegionDatasetRow
-): RegionFeature<TAttributes> {
+function mapLineZRow<TAttributes extends Record<string, unknown>>(
+  row: LineZDatasetRow
+): LineZFeature<TAttributes> {
   const { SmID, SmGeometry, ...attributes } = row;
 
   return {
     id: SmID,
-    geometry: GaiaPolygonCodec.readMultiPolygon(normalizeGeometryBlob(SmGeometry)),
+    geometry: GaiaLineCodec.readMultiLineStringZ(normalizeGeometryBlob(SmGeometry)),
     attributes: attributes as TAttributes
   };
 }
 
-export class RegionDataset<
+export class LineZDataset<
     TAttributes extends Record<string, unknown> = Record<string, unknown>
   >
   extends BaseDataset
-  implements WritableDataset<RegionFeature<TAttributes>>
+  implements WritableDataset<LineZFeature<TAttributes>>
 {
   private readonly registerRepository: SmRegisterRepository;
 
@@ -52,27 +52,25 @@ export class RegionDataset<
     this.registerRepository = new SmRegisterRepository(driver);
   }
 
-  async getById(id: number): Promise<RegionFeature<TAttributes> | null> {
-    const row = await queryOne<RegionDatasetRow>(
+  async getById(id: number): Promise<LineZFeature<TAttributes> | null> {
+    const row = await queryOne<LineZDatasetRow>(
       this.driver,
       `SELECT * FROM "${this.info.tableName}" WHERE SmID = ?`,
       [id]
     );
 
-    return row ? mapRegionRow<TAttributes>(row) : null;
+    return row ? mapLineZRow<TAttributes>(row) : null;
   }
 
-  async list(
-    options?: QueryOptions
-  ): Promise<readonly RegionFeature<TAttributes>[]> {
+  async list(options?: QueryOptions): Promise<readonly LineZFeature<TAttributes>[]> {
     const { sql, params } = buildListSql(this.info.tableName, options);
-    const rows = await queryAll<RegionDatasetRow>(this.driver, sql, params);
-    return rows.map((row) => mapRegionRow<TAttributes>(row));
+    const rows = await queryAll<LineZDatasetRow>(this.driver, sql, params);
+    return rows.map((row) => mapLineZRow<TAttributes>(row));
   }
 
   async *iterate(
     options?: QueryOptions
-  ): AsyncIterable<RegionFeature<TAttributes>> {
+  ): AsyncIterable<LineZFeature<TAttributes>> {
     const { sql, params } = buildListSql(this.info.tableName, options);
     const statement = await this.driver.prepare(sql);
 
@@ -82,20 +80,27 @@ export class RegionDataset<
       }
 
       while (await statement.step()) {
-        yield mapRegionRow<TAttributes>(
-          await statement.getRow<RegionDatasetRow>()
-        );
+        yield mapLineZRow<TAttributes>(await statement.getRow<LineZDatasetRow>());
       }
     } finally {
       await statement.finalize();
     }
   }
 
-  async insert(feature: RegionFeature<TAttributes>): Promise<void> {
+  async count(): Promise<number> {
+    const row = await queryOne<{ readonly count: number }>(
+      this.driver,
+      `SELECT COUNT(*) AS count FROM "${this.info.tableName}"`,
+      []
+    );
+    return row?.count ?? 0;
+  }
+
+  async insert(feature: LineZFeature<TAttributes>): Promise<void> {
     const userFields = await this.getFields();
     const columnNames = ["SmID", "SmUserID", "SmGeometry", ...userFields.map((field) => field.name)];
     const placeholders = columnNames.map(() => "?").join(", ");
-    const geometry = GaiaPolygonCodec.writeMultiPolygon(
+    const geometry = GaiaLineCodec.writeMultiLineStringZ(
       feature.geometry,
       feature.geometry.srid ?? this.info.srid ?? 0
     );
@@ -114,7 +119,7 @@ export class RegionDataset<
   }
 
   async insertMany(
-    features: Iterable<RegionFeature<TAttributes>> | AsyncIterable<RegionFeature<TAttributes>>
+    features: Iterable<LineZFeature<TAttributes>> | AsyncIterable<LineZFeature<TAttributes>>
   ): Promise<void> {
     const userFields = await this.getFields();
     const columnNames = ["SmID", "SmUserID", "SmGeometry", ...userFields.map((field) => field.name)];
@@ -128,7 +133,7 @@ export class RegionDataset<
         let maxGeometrySize = 0;
 
         for await (const feature of features) {
-          const geometry = GaiaPolygonCodec.writeMultiPolygon(
+          const geometry = GaiaLineCodec.writeMultiLineStringZ(
             feature.geometry,
             feature.geometry.srid ?? this.info.srid ?? 0
           );
@@ -161,19 +166,10 @@ export class RegionDataset<
     });
   }
 
-  async count(): Promise<number> {
-    const row = await queryOne<{ readonly count: number }>(
-      this.driver,
-      `SELECT COUNT(*) AS count FROM "${this.info.tableName}"`,
-      []
-    );
-    return row?.count ?? 0;
-  }
-
   async update(
     id: number,
     changes: {
-      geometry?: MultiPolygonGeometry;
+      geometry?: MultiLineStringGeometry;
       attributes?: Partial<TAttributes>;
     }
   ): Promise<void> {
@@ -185,7 +181,7 @@ export class RegionDataset<
     const params: SqlValue[] = [];
 
     if (changes.geometry) {
-      const geometry = GaiaPolygonCodec.writeMultiPolygon(
+      const geometry = GaiaLineCodec.writeMultiLineStringZ(
         changes.geometry,
         changes.geometry.srid ?? this.info.srid ?? 0
       );
@@ -236,11 +232,11 @@ export class RegionDataset<
       readonly srid: number;
       readonly fields?: readonly FieldInfo[];
     }
-  ): Promise<RegionDataset> {
+  ): Promise<LineZDataset> {
     const fields = params.fields ?? [];
     const datasetId = await registerRepository.insert({
       name: params.name,
-      kind: "region",
+      kind: "lineZ",
       srid: params.srid,
       idColumnName: "SmID",
       geometryColumnName: "SmGeometry"
@@ -271,7 +267,7 @@ export class RegionDataset<
          srid,
          spatial_index_enabled
        ) VALUES (?, ?, ?, ?, ?, ?)`,
-      [params.name, "SmGeometry", 6, 2, params.srid, 0]
+      [params.name, "SmGeometry", 1005, 3, params.srid, 0]
     );
 
     if (fields.length > 0) {
@@ -279,15 +275,14 @@ export class RegionDataset<
       await fieldInfoRepository.insertAll(datasetId, fields);
     }
 
-    return new RegionDataset(driver, {
+    return new LineZDataset(driver, {
       id: datasetId,
       name: params.name,
-      kind: "region",
+      kind: "lineZ",
       tableName: params.name,
       srid: params.srid,
       objectCount: 0,
-      geometryType: 6
+      geometryType: 1005
     });
   }
 }
-

@@ -93,7 +93,7 @@ import { createElectronUdbx } from "udbx4ts/electron";
 
 - 以元数据驱动为主
 - 以组合优先于深继承
-- `PointDataset`、`LineDataset`、`RegionDataset` 为轻量语义封装
+- `PointDataset`、`LineDataset`、`RegionDataset`、`PointZDataset`、`LineZDataset`、`RegionZDataset`、`CadDataset` 为轻量语义封装
 
 禁止：
 

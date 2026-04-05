@@ -24,7 +24,7 @@ describe("UdbxDataSource integration", () => {
     });
 
     await ds.createPointDataset("Cities", 4326, [
-      { name: "NAME", fieldType: "string", nullable: false }
+      { name: "NAME", fieldType: "text", nullable: false }
     ]);
     await ds.createLineDataset("Roads", 4326);
     await ds.createRegionDataset("Parcels", 4326);
@@ -46,7 +46,7 @@ describe("UdbxDataSource integration", () => {
     });
 
     const points = await ds.createPointDataset("Cities", 4326, [
-      { name: "NAME", fieldType: "string", nullable: false }
+      { name: "NAME", fieldType: "text", nullable: false }
     ]);
     const lines = await ds.createLineDataset("Roads", 4326);
     const regions = await ds.createRegionDataset("Parcels", 4326);

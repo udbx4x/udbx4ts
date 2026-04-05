@@ -6,5 +6,6 @@ export type DatasetKind =
   | "pointZ"
   | "lineZ"
   | "regionZ"
+  | "text"
   | "cad";
 

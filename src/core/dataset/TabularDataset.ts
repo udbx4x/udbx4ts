@@ -31,9 +31,12 @@ function mapTabularRow<TAttributes extends Record<string, unknown>>(
 }
 
 export interface TabularDatasetReadable {
+  readonly info: DatasetInfo;
+  getFields(): Promise<readonly FieldInfo[]>;
   getById(id: number): Promise<TabularRecord | null>;
   list(options?: QueryOptions): Promise<readonly TabularRecord[]>;
   iterate(options?: QueryOptions): AsyncIterable<TabularRecord>;
+  count(): Promise<number>;
 }
 
 export interface TabularDatasetWritable extends TabularDatasetReadable {
@@ -95,6 +98,15 @@ export class TabularDataset<
     } finally {
       await statement.finalize();
     }
+  }
+
+  async count(): Promise<number> {
+    const row = await queryOne<{ readonly count: number }>(
+      this.driver,
+      `SELECT COUNT(*) AS count FROM "${this.info.tableName}"`,
+      []
+    );
+    return row?.count ?? 0;
   }
 
   async insert(record: TabularRecord<TAttributes>): Promise<void> {

@@ -2,7 +2,7 @@
 
 ## 1. 文档目的
 
-本文档用于把 [TECHNICAL_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/TECHNICAL_PLAN.md) 转化为一份可由多角色智能体团队直接执行的实施计划。
+本文档用于把 [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md) 转化为一份可由多角色智能体团队直接执行的实施计划。
 
 本文档回答四个问题：
 
@@ -29,7 +29,8 @@
 
 - 先打通骨架，再补功能
 - 先验证兼容性，再优化性能
-- 先完成 2D 点线面闭环，再扩展 3D 与 CAD
+- 先完成 2D/3D 点线面和 CAD 数据集闭环
+- 高级扩展（空间索引、性能优化）作为后续阶段
 - 所有并行任务都必须有清晰的文件边界和接口契约
 - 所有角色以文档、测试和可运行样例作为交付物，而不是只提交代码
 
@@ -241,7 +242,7 @@
 
 输入：
 
-- [TECHNICAL_PLAN.md](/Users/zhangyuting/github/zhyt1985/udbx4ts/TECHNICAL_PLAN.md)
+- [TECHNICAL_PLAN.md](./TECHNICAL_PLAN.md)
 - `udbx4j` 参考实现
 
 输出：
@@ -395,12 +396,12 @@
 - 可以创建最小可用 UDBX
 - 新建库系统表结构与参考实现一致
 
-### 阶段 5：核心数据源与 2D 数据集闭环
+### 阶段 5：核心数据源与数据集闭环
 
 目标：
 
 - 完成 `UdbxDataSource`
-- 完成 Point / Line / Region 数据集读写
+- 完成 Point / Line / Region / PointZ / LineZ / RegionZ / Cad 数据集读写
 - 实现流式读取和批量写入基础能力
 
 负责人：
@@ -417,10 +418,14 @@
 可并行子任务：
 
 - `UdbxDataSource` 打开、创建、关闭
-- 数据集工厂分派
+- 数据集工厂分派（含 3D 和 CAD）
 - PointDataset
 - LineDataset
 - RegionDataset
+- PointZDataset
+- LineZDataset
+- RegionZDataset
+- CadDataset
 - 查询映射
 - `AsyncIterable` 流式读取
 
@@ -433,7 +438,7 @@
 完成定义：
 
 - 能打开 `SampleData.udbx`
-- 能列出并读取点线面
+- 能列出并读取点线面（含 3D 和 CAD）
 - 能创建新数据集并写入基础要素
 
 ### 阶段 6：浏览器运行时闭环
@@ -697,8 +702,8 @@
 `DATA-002` 实现数据集工厂分派  
 负责人：Core Architecture Agent  
 前置依赖：`DATA-001`、`CORE-003`  
-交付物：按 `DatasetKind` 返回具体数据集  
-完成定义：点线面数据集可正确实例化
+交付物：按 `DatasetKind` 返回具体数据集（含 3D 和 CAD）  
+完成定义：所有数据集类型（point/line/region/pointZ/lineZ/regionZ/cad/tabular）可正确实例化
 
 `DATA-003` 实现 PointDataset  
 负责人：Core Architecture Agent  
@@ -718,17 +723,41 @@
 交付物：面数据集读写  
 完成定义：支持读取、流式遍历、写入
 
+`DATA-005a` 实现 PointZDataset  
+负责人：Core Architecture Agent  
+前置依赖：`DATA-003`  
+交付物：3D 点数据集读写  
+完成定义：支持 3D 点几何读写和流式遍历
+
+`DATA-005b` 实现 LineZDataset  
+负责人：Core Architecture Agent  
+前置依赖：`DATA-004`  
+交付物：3D 线数据集读写  
+完成定义：支持 3D 线几何读写和流式遍历
+
+`DATA-005c` 实现 RegionZDataset  
+负责人：Core Architecture Agent  
+前置依赖：`DATA-005`  
+交付物：3D 面数据集读写  
+完成定义：支持 3D 面几何读写和流式遍历
+
+`DATA-005d` 实现 CadDataset  
+负责人：Core Architecture Agent  
+前置依赖：`DATA-002`  
+交付物：CAD 数据集读写  
+完成定义：支持 CAD 几何读写和流式遍历
+
 `DATA-006` 实现批量写入与流式读取基础能力  
 负责人：Core Architecture Agent  
-前置依赖：`DATA-003`、`DATA-004`、`DATA-005`  
+前置依赖：`DATA-003`、`DATA-004`、`DATA-005`、`DATA-005a`、`DATA-005b`、`DATA-005c`、`DATA-005d`  
 交付物：通用数据访问能力  
-完成定义：点线面数据集都支持统一模式
+完成定义：所有数据集类型都支持统一模式
 
 `DATA-007` 建立 `SampleData.udbx` 集成测试  
 负责人：QA & Compatibility Agent  
-前置依赖：`DATA-003`、`DATA-004`、`DATA-005`  
+前置依赖：`DATA-003`、`DATA-004`、`DATA-005`、`DATA-005d`  
 交付物：集成测试套件  
-完成定义：可稳定读取样例数据集
+完成定义：可稳定读取样例数据集（含 3D 和 CAD）
 
 ### 6.6 浏览器运行时任务
 
@@ -897,10 +926,14 @@
 - `DATA-003`
 - `DATA-004`
 - `DATA-005`
+- `DATA-005a`
+- `DATA-005b`
+- `DATA-005c`
+- `DATA-005d`
 
 目标：
 
-- 浏览器、Electron、核心数据集三条线并行收敛
+- 浏览器、Electron、核心数据集（含 3D 和 CAD）三条线并行收敛
 
 ---
 
@@ -952,7 +985,7 @@
 
 - 浏览器可打开、读取、修改并导出 `.udbx`
 - Electron 可打开、创建、写入并备份 `.udbx`
-- 点线面 2D 数据集闭环可用
+- 点线面 2D/3D 数据集及 CAD 数据集闭环可用
 - 与 `udbx4j` 的关键兼容性测试通过
 - 有可持续迭代的工程骨架、测试体系和文档体系
 

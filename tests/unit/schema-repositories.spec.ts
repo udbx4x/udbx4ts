@@ -65,7 +65,7 @@ describe("type mappings", () => {
 
   it("maps supported field types to SmFieldType values", () => {
     expect(fieldTypeToValue("double")).toBe(7);
-    expect(fieldValueToType(127)).toBe("string");
+    expect(fieldValueToType(127)).toBe("ntext");
   });
 });
 
@@ -146,7 +146,7 @@ describe("SmFieldInfoRepository", () => {
     expect(fields).toEqual([
       {
         name: "NAME",
-        fieldType: "string",
+        fieldType: "text",
         nullable: true,
         defaultValue: undefined
       }
