@@ -34,7 +34,9 @@
     "clean": "rimraf coverage dist .tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:stable-t3": "vitest run tests/integration/udbx4spec-compliance.integration.spec.ts tests/integration/real-samples.integration.spec.ts",
     "test:browser": "playwright test",
+    "bench:real-samples": "npm run build && node scripts/benchmark-real-samples.mjs",
     "test:watch": "vitest",
     "dev:browser": "vite --config examples/browser/vite.config.ts examples/browser --host 127.0.0.1 --port 5173",
     "dev:electron": "echo \"Electron example wiring will be added in the electron runtime phase.\""

@@ -51,7 +51,8 @@ UDBX (Universal Spatial Database Extension) is a SQLite-based spatial database f
 | Line datasets (Line/LineZ) | ✅ Read/Write | ✅ Read/Write |
 | Region datasets (Region/RegionZ) | ✅ Read/Write | ✅ Read/Write |
 | Tabular datasets | ✅ Read/Write | ✅ Read/Write |
-| CAD datasets | ✅ Read/Write | ✅ Read/Write |
+| Text datasets | ✅ Minimal GeoText Read/Write | ✅ Minimal GeoText Read/Write |
+| CAD datasets | ✅ Read/Write for minimal GeoHeader `GeoPoint` / `GeoLine` / `GeoRegion` | ✅ Read/Write for minimal GeoHeader `GeoPoint` / `GeoLine` / `GeoRegion` |
 | Streaming (AsyncIterable) | ✅ Paged proxy | ✅ Native streaming |
 | Bulk insert | ✅ Transaction optimized | ✅ Transaction optimized |
 | Spatial index | 🚧 Planned | 🚧 Planned |
@@ -186,8 +187,7 @@ Entry point for data sources, managing dataset creation, opening, and enumeratio
 interface UdbxDataSource {
   // Dataset management
   listDatasets(): Promise<readonly DatasetInfo[]>;
-  getDataset(name: string): Promise<UdbxDataset | undefined>;
-  hasDataset(name: string): Promise<boolean>;
+  getDataset(name: string): Promise<UdbxDataset>;
 
   // Create datasets
   createPointDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<PointDataset>;
@@ -196,7 +196,8 @@ interface UdbxDataSource {
   createPointZDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<PointZDataset>;
   createLineZDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<LineZDataset>;
   createRegionZDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<RegionZDataset>;
-  createCadDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<CadDataset>;
+  createTextDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<TextDataset>;
+  createCadDataset(name: string, fields?: FieldInfo[]): Promise<CadDataset>;
   createTabularDataset(name: string, fields?: FieldInfo[]): Promise<TabularDataset>;
 
   // Connection management
@@ -206,12 +207,12 @@ interface UdbxDataSource {
 
 ### Dataset Operations
 
-All datasets support the following operations:
+Fully implemented Point, Line, Region, PointZ, LineZ, RegionZ, Tabular, Text with the minimal GeoText baseline, and CAD with the minimal GeoHeader baseline support the following operations.
 
 ```typescript
 interface ReadableDataset<TFeature> {
   // Query
-  getById(id: number): Promise<TFeature | null>;
+  getById(id: number): Promise<TFeature>;
   list(options?: QueryOptions): Promise<TFeature[]>;
   iterate(options?: QueryOptions): AsyncIterable<TFeature>;
 
@@ -227,6 +228,39 @@ interface WritableDataset<TFeature> extends ReadableDataset<TFeature> {
   insertMany(features: Iterable<TFeature> | AsyncIterable<TFeature>): Promise<void>;
   update(id: number, changes: Partial<TFeature>): Promise<void>;
   delete(id: number): Promise<void>;
+}
+```
+
+### Stable Public API Semantics
+
+`udbx4ts` follows `udbx4spec/docs/08-api-stable-surface.md`. The TypeScript API is asynchronous across runtimes; Browser, Node.js, and Electron adapters must not change core behavior.
+
+| Meaning | TypeScript API | Stable behavior |
+|---|---|---|
+| Open/create data source | `UdbxDataSource.open` / `UdbxDataSource.create` / runtime factories | Open or create UDBX; runtime details must not change core semantics |
+| List datasets | `listDatasets()` | Return a `DatasetInfo` list |
+| Get dataset by name | `getDataset(name)` | Reject `UdbxNotFoundError` when missing |
+| Get object by ID | `getById(id)` | Reject `UdbxNotFoundError` when missing; never resolve `null` |
+| List objects | `list(options?)` / `iterate(options?)` | Return objects ordered by `SmID` ascending by default |
+| Count | `count()` | Read the physical table row count, not the cached `SmRegister.SmObjectCount` |
+| Write | `insert(...)` / `insertMany(...)` | Write objects and synchronize object count |
+| Update | `update(id, changes)` | Reject not found when the target is missing; unknown fields return not found or constraint errors |
+| Delete | `delete(id)` | Reject not found when the target is missing; synchronize object count after success |
+
+Error handling example:
+
+```typescript
+import { UdbxNotFoundError } from "udbx4ts";
+
+try {
+  const feature = await points.getById(42);
+  console.log(feature);
+} catch (error) {
+  if (error instanceof UdbxNotFoundError) {
+    // Dataset, field, record, or feature not found.
+  } else {
+    throw error;
+  }
 }
 ```
 
