@@ -1,0 +1,69 @@
+name: Performance Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample_url:
+        description: "henan.udbx 下载地址。留空时要求 ../data/henan.udbx 已存在。"
+        required: false
+        type: string
+      sample_sha256:
+        description: "henan.udbx SHA-256 校验值。"
+        required: true
+        type: string
+        default: "e5f75d3b0d0334c778a2145f49836271664bd62cf354394fedb47c0ee7665356"
+      retention_days:
+        description: "性能结果 artifact 保留天数。"
+        required: true
+        type: number
+        default: 30
+
+jobs:
+  benchmark:
+    name: Real Sample Node Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare sample
+        env:
+          SAMPLE_URL: ${{ inputs.sample_url }}
+          SAMPLE_SHA256: ${{ inputs.sample_sha256 }}
+        run: |
+          mkdir -p ../data benchmark-artifacts
+          if [ -n "$SAMPLE_URL" ]; then
+            curl -L --fail --show-error --output ../data/henan.udbx "$SAMPLE_URL"
+          fi
+          if [ ! -f ../data/henan.udbx ]; then
+            echo "Missing ../data/henan.udbx. Re-run this workflow with sample_url." >&2
+            exit 1
+          fi
+          echo "$SAMPLE_SHA256  ../data/henan.udbx" | sha256sum -c -
+
+      - name: Verify real sample correctness
+        run: npx vitest run tests/integration/real-samples.integration.spec.ts
+
+      - name: Run Node baseline
+        run: |
+          npm run bench:real-samples -- --json-out benchmark-artifacts/udbx4ts-real-samples.json \
+            | tee benchmark-artifacts/udbx4ts-real-samples.txt
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: udbx4ts-performance-baseline
+          path: benchmark-artifacts/
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention_days }}
