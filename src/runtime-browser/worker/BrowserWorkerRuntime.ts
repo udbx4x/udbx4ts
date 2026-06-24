@@ -1,5 +1,6 @@
 import type { UdbxDataSource } from "../../core/datasource/UdbxDataSource";
 import type { Dataset } from "../../core/dataset/Dataset";
+import { UdbxNotFoundError } from "../../core/errors";
 import type { FieldInfo, FieldType } from "../../core/types";
 import { RPC_METHODS } from "../../shared-runtime/rpc/methods";
 import type {
@@ -59,7 +60,7 @@ interface ExportableDataSource extends UdbxDataSource {
 
 interface DatasetReadableShape {
   getFields: () => Promise<readonly unknown[]>;
-  getById: (id: number) => Promise<unknown | null>;
+  getById: (id: number) => Promise<unknown>;
   list: (options?: unknown) => Promise<readonly unknown[]>;
   count: () => Promise<number>;
 }
@@ -249,8 +250,19 @@ export class BrowserWorkerRuntime {
       );
     }
 
-    const dataset = await ds.getDataset(name);
-    return createSuccess(request.id, dataset?.info ?? null);
+    try {
+      const dataset = await ds.getDataset(name);
+      return createSuccess(request.id, dataset.info);
+    } catch (error) {
+      if (error instanceof UdbxNotFoundError) {
+        return createFailure(
+          request.id,
+          "dataset_not_found",
+          error.message
+        );
+      }
+      throw error;
+    }
   }
 
   private async exportDatabase(id: string): Promise<RuntimeResponse> {
@@ -761,18 +773,21 @@ export class BrowserWorkerRuntime {
       };
     }
 
-    const dataset = await ds.getDataset(datasetName);
-    if (!dataset) {
+    try {
+      const dataset = await ds.getDataset(datasetName);
+      return { dataset };
+    } catch (error) {
+      if (!(error instanceof UdbxNotFoundError)) {
+        throw error;
+      }
       return {
         error: createFailure(
           request.id,
           "dataset_not_found",
-          `Dataset "${datasetName}" does not exist.`
+          error.message
         )
       };
     }
-
-    return { dataset };
   }
 
   private parseCreateDatasetParams(

@@ -39,15 +39,11 @@ export class BrowserUdbxClient {
     return this.transport.request<readonly DatasetInfo[]>(RPC_METHODS.udbxListDatasets);
   }
 
-  async getDataset(name: string): Promise<Dataset | null> {
+  async getDataset(name: string): Promise<Dataset> {
     const info = await this.transport.request<
-      DatasetInfo | null,
+      DatasetInfo,
       { readonly name: string }
     >(RPC_METHODS.udbxGetDatasetInfo, { name });
-
-    if (!info) {
-      return null;
-    }
 
     return new BrowserDatasetClient(this.transport, info);
   }

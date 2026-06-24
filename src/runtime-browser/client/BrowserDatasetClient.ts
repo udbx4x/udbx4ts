@@ -29,9 +29,9 @@ export class BrowserDatasetClient<
     );
   }
 
-  async getById(id: number): Promise<TFeature | null> {
+  async getById(id: number): Promise<TFeature> {
     return this.transport.request<
-      TFeature | null,
+      TFeature,
       DatasetMethodParams & { readonly id: number }
     >(RPC_METHODS.datasetGetById, { datasetName: this.info.name, id });
   }
