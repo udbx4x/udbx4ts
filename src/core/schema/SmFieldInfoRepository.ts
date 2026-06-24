@@ -32,7 +32,7 @@ export class SmFieldInfoRepository {
          SmFieldDefaultValue
        FROM SmFieldInfo
        WHERE SmDatasetID = ?
-       ORDER BY SmID`,
+       ORDER BY SmFieldName`,
       [datasetId]
     );
 

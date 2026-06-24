@@ -52,14 +52,17 @@ export class PointDataset<
     this.registerRepository = new SmRegisterRepository(driver);
   }
 
-  async getById(id: number): Promise<PointFeature<TAttributes> | null> {
+  async getById(id: number): Promise<PointFeature<TAttributes>> {
     const row = await queryOne<PointDatasetRow>(
       this.driver,
       `SELECT * FROM "${this.info.tableName}" WHERE SmID = ?`,
       [id]
     );
 
-    return row ? mapPointRow<TAttributes>(row) : null;
+    if (!row) {
+      throw this.objectNotFound(id);
+    }
+    return mapPointRow<TAttributes>(row);
   }
 
   async list(options?: QueryOptions): Promise<readonly PointFeature<TAttributes>[]> {
@@ -187,11 +190,7 @@ export class PointDataset<
     }
 
     if (changes.attributes) {
-      const userFields = await this.getFields();
-      const fieldNames = new Set(userFields.map((f) => f.name));
-      const validEntries = Object.entries(changes.attributes).filter(([key]) =>
-        fieldNames.has(key)
-      );
+      const validEntries = await this.checkedAttributeEntries(changes.attributes);
       for (const [key, value] of validEntries) {
         setClauses.push(`"${key}" = ?`);
         params.push(value as SqlValue);
@@ -206,12 +205,14 @@ export class PointDataset<
     params.push(id);
 
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
   }
 
   async delete(id: number): Promise<void> {
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(
         this.driver,
         `DELETE FROM "${this.info.tableName}" WHERE SmID = ?`,

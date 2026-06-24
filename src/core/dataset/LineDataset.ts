@@ -52,14 +52,17 @@ export class LineDataset<
     this.registerRepository = new SmRegisterRepository(driver);
   }
 
-  async getById(id: number): Promise<LineFeature<TAttributes> | null> {
+  async getById(id: number): Promise<LineFeature<TAttributes>> {
     const row = await queryOne<LineDatasetRow>(
       this.driver,
       `SELECT * FROM "${this.info.tableName}" WHERE SmID = ?`,
       [id]
     );
 
-    return row ? mapLineRow<TAttributes>(row) : null;
+    if (!row) {
+      throw this.objectNotFound(id);
+    }
+    return mapLineRow<TAttributes>(row);
   }
 
   async list(options?: QueryOptions): Promise<readonly LineFeature<TAttributes>[]> {
@@ -190,11 +193,7 @@ export class LineDataset<
     }
 
     if (changes.attributes) {
-      const userFields = await this.getFields();
-      const fieldNames = new Set(userFields.map((f) => f.name));
-      const validEntries = Object.entries(changes.attributes).filter(([key]) =>
-        fieldNames.has(key)
-      );
+      const validEntries = await this.checkedAttributeEntries(changes.attributes);
       for (const [key, value] of validEntries) {
         setClauses.push(`"${key}" = ?`);
         params.push(value as SqlValue);
@@ -209,12 +208,14 @@ export class LineDataset<
     params.push(id);
 
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
   }
 
   async delete(id: number): Promise<void> {
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(
         this.driver,
         `DELETE FROM "${this.info.tableName}" WHERE SmID = ?`,
@@ -286,4 +287,3 @@ export class LineDataset<
     });
   }
 }
-

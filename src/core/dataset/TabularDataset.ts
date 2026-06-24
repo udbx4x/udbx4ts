@@ -33,7 +33,7 @@ function mapTabularRow<TAttributes extends Record<string, unknown>>(
 export interface TabularDatasetReadable {
   readonly info: DatasetInfo;
   getFields(): Promise<readonly FieldInfo[]>;
-  getById(id: number): Promise<TabularRecord | null>;
+  getById(id: number): Promise<TabularRecord>;
   list(options?: QueryOptions): Promise<readonly TabularRecord[]>;
   iterate(options?: QueryOptions): AsyncIterable<TabularRecord>;
   count(): Promise<number>;
@@ -61,14 +61,17 @@ export class TabularDataset<
     this.registerRepository = new SmRegisterRepository(driver);
   }
 
-  async getById(id: number): Promise<TabularRecord<TAttributes> | null> {
+  async getById(id: number): Promise<TabularRecord<TAttributes>> {
     const row = await queryOne<TabularDatasetRow>(
       this.driver,
       `SELECT * FROM "${this.info.tableName}" WHERE SmID = ?`,
       [id]
     );
 
-    return row ? mapTabularRow<TAttributes>(row) : null;
+    if (!row) {
+      throw this.objectNotFound(id);
+    }
+    return mapTabularRow<TAttributes>(row);
   }
 
   async list(
@@ -183,11 +186,7 @@ export class TabularDataset<
     id: number,
     attributes: Record<string, unknown>
   ): Promise<void> {
-    const userFields = await this.getFields();
-    const fieldNames = new Set(userFields.map((f) => f.name));
-    const validEntries = Object.entries(attributes).filter(([key]) =>
-      fieldNames.has(key)
-    );
+    const validEntries = await this.checkedAttributeEntries(attributes);
     if (validEntries.length === 0) return;
 
     const keys = validEntries.map(([key]) => key);
@@ -199,12 +198,14 @@ export class TabularDataset<
     ];
 
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
   }
 
   async delete(id: number): Promise<void> {
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(
         this.driver,
         `DELETE FROM "${this.info.tableName}" WHERE SmID = ?`,

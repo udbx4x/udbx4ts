@@ -10,8 +10,11 @@ import { TextDataset } from "../dataset/TextDataset";
 import { SmFieldInfoRepository } from "../schema/SmFieldInfoRepository";
 import { UdbxSchemaInitializer } from "../schema/UdbxSchemaInitializer";
 import { SmRegisterRepository } from "../schema/SmRegisterRepository";
+import { executeSql } from "../sql/SqlHelpers";
 import type { SqlDriver, SqlOpenTarget } from "../sql/SqlDriver";
 import type { DatasetInfo, FieldInfo } from "../types";
+import { sqliteColumnType } from "../dataset/vectorDatasetShared";
+import { UdbxNotFoundError, UdbxUnsupportedError } from "../errors";
 
 export type UdbxRuntime = "browser" | "electron" | "unknown";
 export type UdbxDataset =
@@ -58,11 +61,11 @@ export class UdbxDataSource {
     return this.registerRepository.findAll();
   }
 
-  async getDataset(name: string): Promise<UdbxDataset | null> {
+  async getDataset(name: string): Promise<UdbxDataset> {
     const info = await this.registerRepository.findByName(name);
 
     if (!info) {
-      return null;
+      throw new UdbxNotFoundError(name);
     }
 
     switch (info.kind) {
@@ -85,7 +88,7 @@ export class UdbxDataSource {
       case "cad":
         return new CadDataset(this.driver, info);
       default:
-        return null;
+        throw new UdbxUnsupportedError(`dataset kind: ${info.kind}`);
     }
   }
 
@@ -211,7 +214,7 @@ export class UdbxDataSource {
 
       const userColumnDefinitions = fieldList.map((field) => {
         const nullability = field.nullable ? "" : " NOT NULL";
-        return `"${field.name}" TEXT${nullability}`;
+        return `"${field.name}" ${sqliteColumnType(field)}${nullability}`;
       });
 
       const createTableParts = [
@@ -226,6 +229,19 @@ export class UdbxDataSource {
         `CREATE TABLE "${name}" (${createTableParts.join(", ")})`
       );
 
+      await executeSql(
+        this.driver,
+        `INSERT INTO geometry_columns (
+           f_table_name,
+           f_geometry_column,
+           geometry_type,
+           coord_dimension,
+           srid,
+           spatial_index_enabled
+         ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [name, "smindexkey", 3, 2, srid, 0]
+      );
+
       if (fieldList.length > 0) {
         const fieldInfoRepository = new SmFieldInfoRepository(this.driver);
         await fieldInfoRepository.insertAll(datasetId, fieldList);
@@ -238,7 +254,7 @@ export class UdbxDataSource {
         tableName: name,
         srid,
         objectCount: 0,
-        geometryType: null
+        geometryType: 3
       });
     });
   }
@@ -248,46 +264,12 @@ export class UdbxDataSource {
     fields?: readonly FieldInfo[]
   ): Promise<CadDataset> {
     return this.driver.transaction(async () => {
-      const fieldList = fields ?? [];
+      const params =
+        fields === undefined
+          ? { name }
+          : { name, fields };
 
-      const datasetId = await this.registerRepository.insert({
-        name,
-        kind: "cad",
-        srid: 0,
-        idColumnName: "SmID",
-        geometryColumnName: "SmGeometry"
-      });
-
-      const userColumnDefinitions = fieldList.map((field) => {
-        const nullability = field.nullable ? "" : " NOT NULL";
-        return `"${field.name}" TEXT${nullability}`;
-      });
-
-      const createTableParts = [
-        `"SmID" INTEGER NOT NULL PRIMARY KEY`,
-        `"SmUserID" INTEGER DEFAULT 0 NOT NULL`,
-        `"SmGeometry" BLOB`,
-        ...userColumnDefinitions
-      ];
-
-      await this.driver.exec(
-        `CREATE TABLE "${name}" (${createTableParts.join(", ")})`
-      );
-
-      if (fieldList.length > 0) {
-        const fieldInfoRepository = new SmFieldInfoRepository(this.driver);
-        await fieldInfoRepository.insertAll(datasetId, fieldList);
-      }
-
-      return new CadDataset(this.driver, {
-        id: datasetId,
-        name,
-        kind: "cad",
-        tableName: name,
-        srid: 0,
-        objectCount: 0,
-        geometryType: null
-      });
+      return CadDataset.create(this.driver, this.registerRepository, params);
     });
   }
 

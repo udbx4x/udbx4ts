@@ -7,7 +7,7 @@ export interface Dataset {
 
 export interface ReadableDataset<TFeature extends Feature = Feature>
   extends Dataset {
-  getById(id: number): Promise<TFeature | null>;
+  getById(id: number): Promise<TFeature>;
   list(options?: QueryOptions): Promise<readonly TFeature[]>;
   iterate(options?: QueryOptions): AsyncIterable<TFeature>;
   count(): Promise<number>;

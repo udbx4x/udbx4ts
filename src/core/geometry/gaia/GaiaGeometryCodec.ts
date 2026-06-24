@@ -80,7 +80,9 @@ function geometryHasZ(
       return geometry.coordinates[0]?.[0]?.length === 3;
     case "MultiPolygon":
       return geometry.coordinates[0]?.[0]?.[0]?.length === 3;
-    case "Cad":
+    case "CadPoint":
+    case "CadLine":
+    case "CadRegion":
     case "Text":
       return false;
     default:
@@ -102,7 +104,9 @@ function encodeGeometry(geometry: Geometry, srid: number): Uint8Array {
       return geometryHasZ(geometry)
         ? GaiaPolygonCodec.writeMultiPolygonZ(geometry, srid)
         : GaiaPolygonCodec.writeMultiPolygon(geometry, srid);
-    case "Cad":
+    case "CadPoint":
+    case "CadLine":
+    case "CadRegion":
       throw new Error("CAD geometry is not supported by GaiaGeometryCodec.");
     case "Text":
       throw new Error("Text geometry is not supported by GaiaGeometryCodec.");

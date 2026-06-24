@@ -52,14 +52,17 @@ export class RegionDataset<
     this.registerRepository = new SmRegisterRepository(driver);
   }
 
-  async getById(id: number): Promise<RegionFeature<TAttributes> | null> {
+  async getById(id: number): Promise<RegionFeature<TAttributes>> {
     const row = await queryOne<RegionDatasetRow>(
       this.driver,
       `SELECT * FROM "${this.info.tableName}" WHERE SmID = ?`,
       [id]
     );
 
-    return row ? mapRegionRow<TAttributes>(row) : null;
+    if (!row) {
+      throw this.objectNotFound(id);
+    }
+    return mapRegionRow<TAttributes>(row);
   }
 
   async list(
@@ -194,11 +197,7 @@ export class RegionDataset<
     }
 
     if (changes.attributes) {
-      const userFields = await this.getFields();
-      const fieldNames = new Set(userFields.map((f) => f.name));
-      const validEntries = Object.entries(changes.attributes).filter(([key]) =>
-        fieldNames.has(key)
-      );
+      const validEntries = await this.checkedAttributeEntries(changes.attributes);
       for (const [key, value] of validEntries) {
         setClauses.push(`"${key}" = ?`);
         params.push(value as SqlValue);
@@ -213,12 +212,14 @@ export class RegionDataset<
     params.push(id);
 
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
   }
 
   async delete(id: number): Promise<void> {
     await this.driver.transaction(async () => {
+      await this.ensureObjectExists(id);
       await executeSql(
         this.driver,
         `DELETE FROM "${this.info.tableName}" WHERE SmID = ?`,
@@ -290,4 +291,3 @@ export class RegionDataset<
     });
   }
 }
-

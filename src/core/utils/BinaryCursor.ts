@@ -59,6 +59,20 @@ export class BinaryCursor {
     return value;
   }
 
+  readInt8(): number {
+    this.ensureAvailable(1);
+    const value = this.view.getInt8(this.offset);
+    this.offset += 1;
+    return value;
+  }
+
+  readInt16(littleEndian = true): number {
+    this.ensureAvailable(2);
+    const value = this.view.getInt16(this.offset, littleEndian);
+    this.offset += 2;
+    return value;
+  }
+
   readInt32(littleEndian = true): number {
     this.ensureAvailable(4);
     const value = this.view.getInt32(this.offset, littleEndian);
@@ -97,4 +111,3 @@ export class BinaryCursor {
     }
   }
 }
-

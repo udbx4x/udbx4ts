@@ -11,6 +11,8 @@ export * from "./core/dataset/RegionZDataset";
 export * from "./core/dataset/TabularDataset";
 export * from "./core/dataset/TextDataset";
 export * from "./core/errors";
+export * from "./core/geometry/cad/CadGeometryCodec";
+export * from "./core/geometry/geotext/GeoTextCodec";
 export * from "./core/geometry/gaia/GaiaConstants";
 export * from "./core/geometry/gaia/GaiaErrors";
 export * from "./core/geometry/gaia/GaiaGeometryCodec";

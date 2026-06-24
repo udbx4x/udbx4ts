@@ -24,6 +24,18 @@ export class BinaryWriter {
     this.offset += 1;
   }
 
+  writeInt8(value: number): void {
+    this.ensureCapacity(1);
+    this.view.setInt8(this.offset, value);
+    this.offset += 1;
+  }
+
+  writeInt16(value: number, littleEndian = true): void {
+    this.ensureCapacity(2);
+    this.view.setInt16(this.offset, value, littleEndian);
+    this.offset += 2;
+  }
+
   writeInt32(value: number, littleEndian = true): void {
     this.ensureCapacity(4);
     this.view.setInt32(this.offset, value, littleEndian);
@@ -71,4 +83,3 @@ export class BinaryWriter {
     this.bytes = nextBytes;
   }
 }
-
