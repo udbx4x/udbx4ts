@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TabularDataset, UdbxDataSource } from "../../src/index";
+import { TabularDataset, UdbxDataSource, UdbxNotFoundError } from "../../src/index";
 import type { SqlDriver, SqlOpenTarget, SqlStatement, SqlValue } from "../../src/core/sql/SqlDriver";
 
 class MockStatement implements SqlStatement {
@@ -167,6 +167,25 @@ describe("TabularDataset", () => {
     });
   });
 
+  it("rejects with UdbxNotFoundError when getById misses", async () => {
+    const driver = new MockDriver([new MockStatement([])]);
+    const dataset = new TabularDataset(driver, {
+      id: 1,
+      name: "Cities",
+      kind: "tabular",
+      tableName: "Cities",
+      srid: 0,
+      objectCount: 0,
+      geometryType: null
+    });
+
+    const missing = dataset.getById(999);
+
+    await expect(missing).rejects.toThrow(UdbxNotFoundError);
+    await expect(missing).rejects.toThrow("Cities");
+    await expect(missing).rejects.toThrow("999");
+  });
+
   it("lists records with filters", async () => {
     const driver = new MockDriver([
       new MockStatement([
@@ -198,6 +217,7 @@ describe("TabularDataset", () => {
     expect(records[0]!.attributes.NAME).toBe("Beijing");
     expect(records[1]!.attributes.NAME).toBe("Shanghai");
     expect(driver.preparedSql[0]).toContain("WHERE SmID IN (?, ?)");
+    expect(driver.preparedSql[0]).toContain("ORDER BY SmID");
     expect(driver.preparedSql[0]).toContain("LIMIT ?");
   });
 
@@ -244,8 +264,16 @@ describe("TabularDataset", () => {
       { SmFieldName: "NAME", SmFieldType: 128, SmFieldbRequired: 0, SmFieldDefaultValue: null },
       { SmFieldName: "POPULATION", SmFieldType: 4, SmFieldbRequired: 0, SmFieldDefaultValue: null }
     ]);
+    const existingRecord = new MockStatement([
+      {
+        SmID: 1,
+        SmUserID: 0,
+        NAME: "Beijing",
+        POPULATION: 21540000
+      }
+    ]);
     const updateStatement = new MockStatement([]);
-    const driver = new MockDriver([fieldsStatement, updateStatement]);
+    const driver = new MockDriver([fieldsStatement, existingRecord, updateStatement]);
     const dataset = new TabularDataset(driver, {
       id: 1,
       name: "Cities",
@@ -263,15 +291,66 @@ describe("TabularDataset", () => {
       22000000,
       1
     ]);
-    expect(driver.preparedSql[1]).toContain("UPDATE");
-    expect(driver.preparedSql[1]).toContain('"NAME" = ?');
-    expect(driver.preparedSql[1]).toContain('"POPULATION" = ?');
+    expect(driver.preparedSql[2]).toContain("UPDATE");
+    expect(driver.preparedSql[2]).toContain('"NAME" = ?');
+    expect(driver.preparedSql[2]).toContain('"POPULATION" = ?');
+  });
+
+  it("rejects with UdbxNotFoundError when update target is missing", async () => {
+    const fieldsStatement = new MockStatement([
+      { SmFieldName: "NAME", SmFieldType: 128, SmFieldbRequired: 0, SmFieldDefaultValue: null }
+    ]);
+    const missingRecord = new MockStatement([]);
+    const driver = new MockDriver([fieldsStatement, missingRecord]);
+    const dataset = new TabularDataset(driver, {
+      id: 1,
+      name: "Cities",
+      kind: "tabular",
+      tableName: "Cities",
+      srid: 0,
+      objectCount: 1,
+      geometryType: null
+    });
+
+    const missing = dataset.update(999, { NAME: "Ghost" });
+
+    await expect(missing).rejects.toThrow(UdbxNotFoundError);
+    await expect(missing).rejects.toThrow("Cities");
+    await expect(missing).rejects.toThrow("999");
+  });
+
+  it("rejects with UdbxNotFoundError when update references an unknown field", async () => {
+    const fieldsStatement = new MockStatement([
+      { SmFieldName: "NAME", SmFieldType: 128, SmFieldbRequired: 0, SmFieldDefaultValue: null }
+    ]);
+    const driver = new MockDriver([fieldsStatement]);
+    const dataset = new TabularDataset(driver, {
+      id: 1,
+      name: "Cities",
+      kind: "tabular",
+      tableName: "Cities",
+      srid: 0,
+      objectCount: 1,
+      geometryType: null
+    });
+
+    const invalid = dataset.update(1, { NAME: "Beijing", MISSING: "value" });
+
+    await expect(invalid).rejects.toThrow(UdbxNotFoundError);
+    await expect(invalid).rejects.toThrow("MISSING");
   });
 
   it("deletes a record", async () => {
+    const existingRecord = new MockStatement([
+      {
+        SmID: 1,
+        SmUserID: 0,
+        NAME: "Beijing"
+      }
+    ]);
     const deleteStatement = new MockStatement([]);
     const decrementRegister = new MockStatement([]);
-    const driver = new MockDriver([deleteStatement, decrementRegister]);
+    const driver = new MockDriver([existingRecord, deleteStatement, decrementRegister]);
     const dataset = new TabularDataset(driver, {
       id: 1,
       name: "Cities",
@@ -286,6 +365,26 @@ describe("TabularDataset", () => {
 
     expect(driver.transactionCount).toBe(1);
     expect(deleteStatement.boundParams[0]).toEqual([1]);
-    expect(driver.preparedSql[0]).toContain("DELETE FROM");
+    expect(driver.preparedSql[1]).toContain("DELETE FROM");
+  });
+
+  it("rejects with UdbxNotFoundError when delete target is missing", async () => {
+    const missingRecord = new MockStatement([]);
+    const driver = new MockDriver([missingRecord]);
+    const dataset = new TabularDataset(driver, {
+      id: 1,
+      name: "Cities",
+      kind: "tabular",
+      tableName: "Cities",
+      srid: 0,
+      objectCount: 1,
+      geometryType: null
+    });
+
+    const missing = dataset.delete(999);
+
+    await expect(missing).rejects.toThrow(UdbxNotFoundError);
+    await expect(missing).rejects.toThrow("Cities");
+    await expect(missing).rejects.toThrow("999");
   });
 });

@@ -131,7 +131,7 @@ describe("runtime-browser client", () => {
 
     const datasets = await ds.listDatasets();
     const dataset = await ds.getDataset("Cities");
-    const feature = await dataset?.getById(1);
+    const feature = await dataset.getById(1);
     const created = await ds.createPointDataset("POI", 4326, [
       { name: "NAME", fieldType: "text", nullable: false }
     ]);

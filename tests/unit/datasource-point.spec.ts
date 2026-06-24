@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PointDataset, UdbxDataSource } from "../../src/index";
+import { PointDataset, UdbxDataSource, UdbxNotFoundError } from "../../src/index";
 import { GaiaPointCodec } from "../../src/core/geometry/gaia/GaiaPointCodec";
 import type { SqlDriver, SqlOpenTarget, SqlStatement, SqlValue } from "../../src/core/sql/SqlDriver";
 
@@ -127,6 +127,16 @@ describe("UdbxDataSource", () => {
     expect(dataset?.info.name).toBe("BaseMap_P");
   });
 
+  it("rejects with UdbxNotFoundError when dataset name is missing", async () => {
+    const driver = new MockDriver([new MockStatement([])]);
+    const ds = new UdbxDataSource(driver);
+
+    const missing = ds.getDataset("DoesNotExist");
+
+    await expect(missing).rejects.toThrow(UdbxNotFoundError);
+    await expect(missing).rejects.toThrow("DoesNotExist");
+  });
+
   it("creates a point dataset and registers metadata", async () => {
     const nextId = new MockStatement([{ nextId: 2 }]);
     const insertRegister = new MockStatement([]);
@@ -221,6 +231,25 @@ describe("PointDataset", () => {
     });
   });
 
+  it("rejects with UdbxNotFoundError when getById misses", async () => {
+    const driver = new MockDriver([new MockStatement([])]);
+    const dataset = new PointDataset(driver, {
+      id: 1,
+      name: "BaseMap_P",
+      kind: "point",
+      tableName: "BaseMap_P",
+      srid: 4326,
+      objectCount: 0,
+      geometryType: 1
+    });
+
+    const missing = dataset.getById(999);
+
+    await expect(missing).rejects.toThrow(UdbxNotFoundError);
+    await expect(missing).rejects.toThrow("BaseMap_P");
+    await expect(missing).rejects.toThrow("999");
+  });
+
   it("builds list queries with filters", async () => {
     const blob = GaiaPointCodec.writePoint(
       { type: "Point", coordinates: [116.123, 39.456] },
@@ -297,4 +326,3 @@ describe("PointDataset", () => {
     expect(updateRegister.boundParams[0]).toEqual([60, 60, 5]);
   });
 });
-

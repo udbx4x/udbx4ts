@@ -129,12 +129,10 @@ describe("UdbxDataSource integration", () => {
       const dataset = await reopened.getDataset("Cities");
 
       expect(datasets.map((item) => item.name)).toEqual(["Cities"]);
-      expect(dataset).not.toBeNull();
-      await expect(dataset?.getById(1) ?? Promise.resolve(null)).resolves.toMatchObject({
+      await expect(dataset.getById(1)).resolves.toMatchObject({
         id: 1
       });
       await reopened.close();
     }
   });
 });
-

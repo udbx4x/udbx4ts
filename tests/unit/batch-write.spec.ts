@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { NodeSqliteDriver } from "../support/NodeSqliteDriver";
 import { UdbxDataSource } from "../../src/core/datasource/UdbxDataSource";
+import { UdbxNotFoundError } from "../../src/core/errors";
 import type { PointGeometry, MultiPolygonGeometry } from "../../src/core/types";
 
 describe("Batch write optimization", () => {
@@ -114,7 +115,7 @@ describe("Batch write optimization", () => {
     expect(all).toHaveLength(0);
   });
 
-  it("update() only updates registered fields", async () => {
+  it("update() rejects when any field is not registered", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("update_test", [
       { name: "NAME", fieldType: "text", nullable: true },
@@ -124,16 +125,17 @@ describe("Batch write optimization", () => {
     await tabularDs.insert({ id: 1, attributes: { NAME: "A", VALUE: 10 } });
     await tabularDs.insert({ id: 2, attributes: { NAME: "B", VALUE: 20 } });
 
-    // Update with a mix of valid and invalid fields
-    await tabularDs.update(1, { NAME: "A Updated", NONEXISTENT: "ignored" });
+    await expect(
+      tabularDs.update(1, { NAME: "A Updated", NONEXISTENT: "rejected" })
+    ).rejects.toThrow(UdbxNotFoundError);
 
     const record = await tabularDs.getById(1);
-    expect(record!.attributes.NAME).toBe("A Updated");
+    expect(record!.attributes.NAME).toBe("A");
     expect(record!.attributes.VALUE).toBe(10);
     expect((record!.attributes as Record<string, unknown>).NONEXISTENT).toBeUndefined();
   });
 
-  it("update() ignores all invalid fields silently", async () => {
+  it("update() rejects when all fields are not registered", async () => {
     const ds = await createTestDataSource();
     const tabularDs = await ds.createTabularDataset("update_noop_test", [
       { name: "NAME", fieldType: "text", nullable: true }
@@ -141,8 +143,9 @@ describe("Batch write optimization", () => {
 
     await tabularDs.insert({ id: 1, attributes: { NAME: "Original" } });
 
-    // All fields are invalid — should be a no-op
-    await tabularDs.update(1, { BOGUS: "value", FAKE: 42 });
+    await expect(
+      tabularDs.update(1, { BOGUS: "value", FAKE: 42 })
+    ).rejects.toThrow(UdbxNotFoundError);
 
     const record = await tabularDs.getById(1);
     expect(record!.attributes.NAME).toBe("Original");
