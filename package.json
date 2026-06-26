@@ -1,6 +1,6 @@
 {
   "name": "udbx4ts",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "TypeScript UDBX runtime for Web and Electron.",
   "main": "./dist/index.cjs",
