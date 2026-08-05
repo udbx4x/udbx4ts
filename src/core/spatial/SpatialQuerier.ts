@@ -1,5 +1,9 @@
 import { SpatialQueryError, UdbxNotFoundError } from "../errors";
 import { CadGeometryCodec } from "../geometry/cad/CadGeometryCodec";
+import {
+  GAIA_ENVELOPE_HEADER_LENGTH,
+  readGaiaEnvelope
+} from "../geometry/gaia/GaiaEnvelope";
 import { GaiaGeometryCodec } from "../geometry/gaia/GaiaGeometryCodec";
 import { GeoTextCodec } from "../geometry/geotext/GeoTextCodec";
 import { SmRegisterRepository } from "../schema/SmRegisterRepository";
@@ -19,11 +23,16 @@ import {
   quoteIdentifier,
   type DetectedSpatialCapability
 } from "./spatialCapability";
+import {
+  EnvelopeCacheManager,
+  type EnvelopeEntry
+} from "./envelopeCache";
 
 export interface NormalizedSpatialQueryOptions {
   readonly bounds: BoundingBox;
   readonly limit: number;
   readonly requiredIds: readonly number[];
+  readonly signal: AbortSignal | undefined;
 }
 
 /** 校验并规范化视口查询选项；非法输入以 `invalid_viewport` 失败。 */
@@ -70,7 +79,8 @@ export function normalizeSpatialQueryOptions(
   return {
     bounds: { ...bounds },
     limit: options.limit,
-    requiredIds
+    requiredIds,
+    signal: options.signal
   };
 }
 
@@ -120,7 +130,15 @@ function decodeGeometry(
  * 语义与 Go `internal/dataset/spatial_query.go` 对齐。
  */
 export class SpatialQuerier {
-  constructor(private readonly driver: SqlDriver) {}
+  private readonly envelopeCacheManager: EnvelopeCacheManager;
+
+  constructor(
+    private readonly driver: SqlDriver,
+    options?: { readonly envelopeCacheManager?: EnvelopeCacheManager }
+  ) {
+    this.envelopeCacheManager =
+      options?.envelopeCacheManager ?? new EnvelopeCacheManager();
+  }
 
   async query(
     info: DatasetInfo,
@@ -152,15 +170,17 @@ export class SpatialQuerier {
       );
     }
 
-    if (capability.rtreeAvailable && detected?.rtreeName) {
+    if (!detected) {
+      throw new SpatialQueryError(
+        "spatial_index_unavailable",
+        "spatial query columns are unavailable"
+      );
+    }
+    if (capability.rtreeAvailable && detected.rtreeName) {
       return this.queryRTree(info, normalized, detected);
     }
 
-    // Task 4 将实现包络缓存 fallback。
-    throw new SpatialQueryError(
-      "spatial_index_unavailable",
-      "envelope-cache fallback is not implemented yet"
-    );
+    return this.queryEnvelopeCache(info, normalized, detected);
   }
 
   private async queryRTree(
@@ -244,6 +264,131 @@ export class SpatialQuerier {
       }
     }
     return features;
+  }
+
+  private async queryEnvelopeCache(
+    info: DatasetInfo,
+    options: NormalizedSpatialQueryOptions,
+    detected: DetectedSpatialCapability
+  ): Promise<SpatialQueryResult> {
+    const key = this.envelopeCacheManager.cacheKey(
+      info.tableName,
+      detected.idColumn,
+      detected.envelopeColumn
+    );
+    const entries = await this.envelopeCacheManager.getOrBuild(
+      key,
+      () => this.buildEnvelopeEntries(info, detected, options.signal),
+      options.signal
+    );
+
+    const ids: number[] = [];
+    let hasMore = false;
+    for (const entry of entries) {
+      if (
+        entry.maxX < options.bounds.minX ||
+        entry.minX > options.bounds.maxX ||
+        entry.maxY < options.bounds.minY ||
+        entry.minY > options.bounds.maxY
+      ) {
+        continue;
+      }
+      ids.push(entry.id);
+      if (ids.length === options.limit + 1) {
+        hasMore = true;
+        ids.pop();
+        break;
+      }
+    }
+
+    const orderedIDs = appendRequiredSpatialIDs(ids, options.requiredIds);
+    const features = await this.loadFeaturesByIDs(info, detected, orderedIDs);
+    return {
+      features,
+      queriedBounds: options.bounds,
+      strategy: "envelope_cache",
+      hasMore
+    };
+  }
+
+  private async *buildEnvelopeEntries(
+    info: DatasetInfo,
+    detected: DetectedSpatialCapability,
+    signal?: AbortSignal
+  ): AsyncGenerator<EnvelopeEntry> {
+    const nullablePayload =
+      info.kind === "text" || info.kind === "cad";
+    const statement = await this.driver.prepare(
+      `SELECT
+         ${quoteIdentifier(detected.idColumn)} AS id,
+         substr(${quoteIdentifier(detected.envelopeColumn)}, 1, ${GAIA_ENVELOPE_HEADER_LENGTH}) AS envelope,
+         CASE WHEN ${quoteIdentifier(detected.payloadColumn)} IS NOT NULL THEN 1 ELSE 0 END AS payloadPresent
+       FROM ${quoteIdentifier(info.tableName)}
+       ORDER BY ${quoteIdentifier(detected.idColumn)}`
+    );
+
+    try {
+      while (await statement.step()) {
+        if (signal?.aborted) {
+          throw new SpatialQueryError(
+            "query_timeout",
+            "spatial query cancelled"
+          );
+        }
+        const row = await statement.getRow<{
+          id: number | bigint;
+          envelope: Uint8Array | ArrayBuffer | null;
+          payloadPresent: number;
+        }>();
+        const id = Number(row.id);
+        const envelopeBlob = row.envelope;
+
+        if (envelopeBlob === null || envelopeBlob === undefined) {
+          if (nullablePayload && row.payloadPresent === 0) {
+            continue; // 双空行：跳过
+          }
+          if (nullablePayload) {
+            throw new SpatialQueryError(
+              "spatial_index_unavailable",
+              "spatial payload is missing its SmIndexKey envelope"
+            );
+          }
+          throw new SpatialQueryError(
+            "corrupt_geometry",
+            "GAIA envelope header is not a BLOB"
+          );
+        }
+        if (nullablePayload && row.payloadPresent === 0) {
+          throw new SpatialQueryError(
+            "corrupt_geometry",
+            "SmIndexKey envelope exists without a spatial payload"
+          );
+        }
+
+        let envelope: ReturnType<typeof readGaiaEnvelope>;
+        try {
+          const bytes =
+            envelopeBlob instanceof ArrayBuffer
+              ? new Uint8Array(envelopeBlob)
+              : envelopeBlob;
+          envelope = readGaiaEnvelope(bytes);
+        } catch {
+          throw new SpatialQueryError(
+            "corrupt_geometry",
+            "failed to read GAIA envelope"
+          );
+        }
+        yield {
+          id,
+          minX: envelope.minX,
+          minY: envelope.minY,
+          maxX: envelope.maxX,
+          maxY: envelope.maxY
+        };
+      }
+    } finally {
+      await statement.finalize();
+    }
   }
 
   private mapFeature(
