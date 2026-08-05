@@ -111,6 +111,18 @@ export class EnvelopeCacheManager {
     this.caches.delete(key);
   }
 
+  /** 使指定物理表的所有包络缓存失效。 */
+  invalidateTable(tableName: string): void {
+    const prefix = `${tableName}\u0000`;
+    for (const [key, cache] of this.caches) {
+      if (key.startsWith(prefix)) {
+        cache.retired = true;
+        this.totalBytes -= cache.bytes;
+        this.caches.delete(key);
+      }
+    }
+  }
+
   close(): void {
     this.caches.clear();
     this.totalBytes = 0;

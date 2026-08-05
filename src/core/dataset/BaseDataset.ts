@@ -4,6 +4,7 @@ import { SmFieldInfoRepository } from "../schema/SmFieldInfoRepository";
 import { UdbxNotFoundError } from "../errors";
 import type { Dataset } from "./Dataset";
 import { queryOne } from "../sql/SqlHelpers";
+import { notifyDatasetMutation } from "../spatial/mutationHooks";
 
 export abstract class BaseDataset implements Dataset {
   protected readonly fieldInfoRepository: SmFieldInfoRepository;
@@ -37,6 +38,11 @@ export abstract class BaseDataset implements Dataset {
     if (!row) {
       throw this.objectNotFound(id);
     }
+  }
+
+  /** 写操作成功后使本数据集的空间查询包络缓存失效。 */
+  protected notifySpatialMutation(): void {
+    notifyDatasetMutation(this.driver, this.info.tableName);
   }
 
   protected async checkedAttributeEntries(

@@ -12,9 +12,17 @@ import { UdbxSchemaInitializer } from "../schema/UdbxSchemaInitializer";
 import { SmRegisterRepository } from "../schema/SmRegisterRepository";
 import { executeSql } from "../sql/SqlHelpers";
 import type { SqlDriver, SqlOpenTarget } from "../sql/SqlDriver";
-import type { DatasetInfo, FieldInfo } from "../types";
+import type {
+  DatasetInfo,
+  FieldInfo,
+  SpatialQueryOptions,
+  SpatialQueryResult
+} from "../types";
 import { sqliteColumnType } from "../dataset/vectorDatasetShared";
 import { UdbxNotFoundError, UdbxUnsupportedError } from "../errors";
+import { SpatialQuerier } from "../spatial/SpatialQuerier";
+import { EnvelopeCacheManager } from "../spatial/envelopeCache";
+import { registerMutationInvalidator } from "../spatial/mutationHooks";
 
 export type UdbxRuntime = "browser" | "electron" | "unknown";
 export type UdbxDataset =
@@ -30,12 +38,17 @@ export type UdbxDataset =
 
 export class UdbxDataSource {
   private readonly registerRepository: SmRegisterRepository;
+  private readonly envelopeCacheManager: EnvelopeCacheManager;
 
   constructor(
     private readonly driver: SqlDriver,
     readonly runtime: UdbxRuntime = "unknown"
   ) {
     this.registerRepository = new SmRegisterRepository(driver);
+    this.envelopeCacheManager = new EnvelopeCacheManager();
+    registerMutationInvalidator(this.driver, (tableName) =>
+      this.envelopeCacheManager.invalidateTable(tableName)
+    );
   }
 
   static async open(params: {
@@ -59,6 +72,19 @@ export class UdbxDataSource {
 
   async listDatasets(): Promise<readonly DatasetInfo[]> {
     return this.registerRepository.findAll();
+  }
+
+  async querySpatial(
+    datasetName: string,
+    options: SpatialQueryOptions
+  ): Promise<SpatialQueryResult> {
+    const info = await this.registerRepository.findByName(datasetName);
+    if (!info) {
+      throw new UdbxNotFoundError(datasetName);
+    }
+    return new SpatialQuerier(this.driver, {
+      envelopeCacheManager: this.envelopeCacheManager
+    }).query(info, options);
   }
 
   async getDataset(name: string): Promise<UdbxDataset> {
@@ -274,6 +300,10 @@ export class UdbxDataSource {
   }
 
   async close(): Promise<void> {
-    await this.driver.close();
+    try {
+      await this.driver.close();
+    } finally {
+      this.envelopeCacheManager.close();
+    }
   }
 }
