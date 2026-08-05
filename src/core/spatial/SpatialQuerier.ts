@@ -116,13 +116,20 @@ function decodeGeometry(
     );
   }
   const bytes = blob instanceof ArrayBuffer ? new Uint8Array(blob) : blob;
-  if (kind === "text") {
-    return GeoTextCodec.decode(bytes);
+  try {
+    if (kind === "text") {
+      return GeoTextCodec.decode(bytes);
+    }
+    if (kind === "cad") {
+      return CadGeometryCodec.read(bytes);
+    }
+    return GaiaGeometryCodec.decode(bytes);
+  } catch {
+    throw new SpatialQueryError(
+      "corrupt_geometry",
+      "failed to decode spatial geometry"
+    );
   }
-  if (kind === "cad") {
-    return CadGeometryCodec.read(bytes);
-  }
-  return GaiaGeometryCodec.decode(bytes);
 }
 
 /**
