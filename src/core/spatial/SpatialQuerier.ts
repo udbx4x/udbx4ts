@@ -145,6 +145,7 @@ export class SpatialQuerier {
     options: SpatialQueryOptions
   ): Promise<SpatialQueryResult> {
     const normalized = normalizeSpatialQueryOptions(options);
+    this.throwIfAborted(normalized.signal);
     const register = await new SmRegisterRepository(this.driver).findSpatialMetadata(
       info.name
     );
@@ -216,6 +217,7 @@ export class SpatialQuerier {
         options.limit + 1
       ]
     );
+    this.throwIfAborted(options.signal);
 
     const ids = rows.map((row) => Number(row.id));
     const hasMore = ids.length > options.limit;
@@ -224,7 +226,12 @@ export class SpatialQuerier {
       candidateIDs,
       options.requiredIds
     );
-    const features = await this.loadFeaturesByIDs(info, detected, orderedIDs);
+    const features = await this.loadFeaturesByIDs(
+      info,
+      detected,
+      orderedIDs,
+      options.signal
+    );
 
     return {
       features,
@@ -237,11 +244,13 @@ export class SpatialQuerier {
   private async loadFeaturesByIDs(
     info: DatasetInfo,
     detected: DetectedSpatialCapability,
-    ids: readonly number[]
+    ids: readonly number[],
+    signal?: AbortSignal
   ): Promise<readonly Feature[]> {
     if (ids.length === 0) {
       return [];
     }
+    this.throwIfAborted(signal);
     const placeholders = ids.map(() => "?").join(", ");
     const rows = await queryAll<Record<string, unknown>>(
       this.driver,
@@ -249,6 +258,7 @@ export class SpatialQuerier {
        WHERE ${quoteIdentifier(detected.idColumn)} IN (${placeholders})`,
       [...ids]
     );
+    this.throwIfAborted(signal);
 
     const featuresByID = new Map<number, Feature>();
     for (const row of rows) {
@@ -276,6 +286,7 @@ export class SpatialQuerier {
       detected.idColumn,
       detected.envelopeColumn
     );
+    this.throwIfAborted(options.signal);
     const entries = await this.envelopeCacheManager.getOrBuild(
       key,
       () => this.buildEnvelopeEntries(info, detected, options.signal),
@@ -302,13 +313,28 @@ export class SpatialQuerier {
     }
 
     const orderedIDs = appendRequiredSpatialIDs(ids, options.requiredIds);
-    const features = await this.loadFeaturesByIDs(info, detected, orderedIDs);
+    this.throwIfAborted(options.signal);
+    const features = await this.loadFeaturesByIDs(
+      info,
+      detected,
+      orderedIDs,
+      options.signal
+    );
     return {
       features,
       queriedBounds: options.bounds,
       strategy: "envelope_cache",
       hasMore
     };
+  }
+
+  private throwIfAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw new SpatialQueryError(
+        "query_timeout",
+        "spatial query cancelled"
+      );
+    }
   }
 
   private async *buildEnvelopeEntries(
