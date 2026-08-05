@@ -38,6 +38,7 @@ npx vitest run tests/integration/udbx4spec-compliance.integration.spec.ts
 当前实现边界：
 
 - Text / GeoText 与 CAD 已完成当前最小合规基线；后续继续扩大真实 SuperMap UDBX 样本兼容范围。
+- 视口空间查询 `querySpatial` 已实现并覆盖 Point/Line/Region、Z 类型、Text 与 CAD（RTree 与包络缓存双路径），通过真实样本（`henan.udbx`、`SampleData.udbx`）与浏览器 Worker RPC 测试；与 Go 的差异见 CHANGELOG Notes（外部写入完整性重校验、CAD geoType 7 按 `corrupt_geometry` 失败）。
 - T3 Source-derived fixture 当前为 `stable`，原始字节一致性、授权字段、生成工具字段和脱敏状态由 `udbx4spec/tools/check-fixtures.mjs` 校验；发布前必须运行 `npm run test:stable-t3`。
 - 公开 API 最小稳定面已按 `udbx4spec/docs/08-api-stable-surface.md` 收敛：`getDataset` / `getById` 未命中 reject `UdbxNotFoundError`，`list` 默认按 `SmID` 升序，`count` 读取物理表真实行数，`update/delete` 对缺失对象 reject not found，`update` 对未知字段 reject not found，不再静默忽略。
 

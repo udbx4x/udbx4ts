@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,6 +34,8 @@ const complianceDbPath = resolve(specRoot, "compliance/compliance.udbx");
 const roundtripManifestPath = resolve(specRoot, "compliance/roundtrip/manifest.json");
 const roundtripRoot = resolve(specRoot, "compliance/roundtrip");
 const sourceDerivedRoot = resolve(specRoot, "compliance/source-derived");
+// udbx4spec 合规资产位于 monorepo 工作区（udbx4x/udbx4spec），独立仓库 CI 检出中不存在时跳过。
+const complianceAssetsAvailable = existsSync(specRoot);
 
 interface GoldenFixtureEntry {
   readonly id: string;
@@ -539,7 +542,7 @@ function assertRoundtripEquivalent(
   );
 }
 
-describe("udbx4spec compliance fixtures", () => {
+describe.skipIf(!complianceAssetsAvailable)("udbx4spec compliance fixtures", () => {
   it("decodes and re-encodes every golden GAIA fixture losslessly", async () => {
     const manifest = JSON.parse(
       await readFile(goldenManifestPath, "utf8")

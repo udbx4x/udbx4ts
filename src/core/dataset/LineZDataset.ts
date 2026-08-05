@@ -119,6 +119,7 @@ export class LineZDataset<
       await executeSql(this.driver, sql, params);
       await this.registerRepository.incrementObjectCount(this.info.id, geometry.byteLength);
     });
+    this.notifySpatialMutation();
   }
 
   async insertMany(
@@ -167,6 +168,7 @@ export class LineZDataset<
         await statement.finalize();
       }
     });
+    this.notifySpatialMutation();
   }
 
   async update(
@@ -211,6 +213,7 @@ export class LineZDataset<
       await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
+    this.notifySpatialMutation();
   }
 
   async delete(id: number): Promise<void> {
@@ -223,6 +226,7 @@ export class LineZDataset<
       );
       await this.registerRepository.decrementObjectCount(this.info.id);
     });
+    this.notifySpatialMutation();
   }
 
   static async create(

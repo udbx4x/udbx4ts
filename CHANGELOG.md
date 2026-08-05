@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+
+- 新增 `UdbxDataSource.querySpatial(datasetName, options)`：按视口 MBR 查询空间数据集，覆盖 Point/Line/Region、Z 类型、Text 与 CAD，成功策略仅 `rtree | envelope_cache`。
+- 新增能力探测：`SmRegister`/`geometry_columns`/`sqlite_master` RTree 结构校验，与 Go 实现一致的数据集类型覆盖集合。
+- 新增 DataSource 生命周期包络缓存（默认 32 MiB/数据集、64 MiB/DataSource），构建期间预算超限返回 `envelope_cache_budget_exceeded`。
+- 新增写操作缓存失效：insert/insertMany/update/delete 后自动使对应表包络缓存失效。
+- 新增六稳定原因码错误（`SpatialQueryError`）与 `AbortSignal` 取消/超时语义。
+- 新增浏览器 Worker RPC `udbx.querySpatial`，`src/core/` 保持平台无关。
+- 新增真实样本集成测试（`henan.udbx` RTree、`SampleData.udbx` Text/CAD 包络）与浏览器冒烟测试。
+
+### Notes
+
+- 包络缓存一致性依赖 SDK 写操作失效；外部进程直接改写源文件后的完整性重校验暂未实现（Go 通过每次使用前重扫实现）。
+- CAD 解码保持最小基线（CadPoint/CadLine/CadRegion）；`SampleData.udbx` CADDT 第 78-92 行（geoType 7）按 `corrupt_geometry` 失败。
+
 ## [0.4.0] - 2026-06-26
 
 ### Added

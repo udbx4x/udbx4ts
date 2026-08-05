@@ -55,7 +55,7 @@ UDBX（Universal Spatial Database Extension）是基于 SQLite 的空间数据�
 | CAD 数据集 | ✅ 最小 GeoHeader `GeoPoint` / `GeoLine` / `GeoRegion` 读/写 | ✅ 最小 GeoHeader `GeoPoint` / `GeoLine` / `GeoRegion` 读/写 |
 | 流式读取 (AsyncIterable) | ✅ 分页代理 | ✅ 原生流式 |
 | 批量写入 | ✅ 事务优化 | ✅ 事务优化 |
-| 空间索引 | 🚧 计划中 | 🚧 计划中 |
+| 视口空间查询（RTree / 包络缓存） | ✅ Point/Line/Region/Z/Text/CAD | ✅ Point/Line/Region/Z/Text/CAD |
 
 ---
 
@@ -188,6 +188,10 @@ interface UdbxDataSource {
   // 数据集管理
   listDatasets(): Promise<readonly DatasetInfo[]>;
   getDataset(name: string): Promise<UdbxDataset>;
+  querySpatial(
+    datasetName: string,
+    options: SpatialQueryOptions
+  ): Promise<SpatialQueryResult>;
 
   // 创建数据集
   createPointDataset(name: string, srid: number, fields?: FieldInfo[]): Promise<PointDataset>;

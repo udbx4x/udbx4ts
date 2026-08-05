@@ -107,6 +107,7 @@ export class PointDataset<
       await executeSql(this.driver, sql, params);
       await this.registerRepository.incrementObjectCount(this.info.id, geometry.byteLength);
     });
+    this.notifySpatialMutation();
   }
 
   async insertMany(
@@ -155,6 +156,7 @@ export class PointDataset<
         await statement.finalize();
       }
     });
+    this.notifySpatialMutation();
   }
 
   async count(): Promise<number> {
@@ -208,6 +210,7 @@ export class PointDataset<
       await this.ensureObjectExists(id);
       await executeSql(this.driver, sql, params);
     });
+    this.notifySpatialMutation();
   }
 
   async delete(id: number): Promise<void> {
@@ -220,6 +223,7 @@ export class PointDataset<
       );
       await this.registerRepository.decrementObjectCount(this.info.id);
     });
+    this.notifySpatialMutation();
   }
 
   static async create(

@@ -127,6 +127,7 @@ export class CadDataset<
         geometry.byteLength
       );
     });
+    this.notifySpatialMutation();
   }
 
   async insertMany(
@@ -178,6 +179,7 @@ export class CadDataset<
         await statement.finalize();
       }
     });
+    this.notifySpatialMutation();
   }
 
   async update(
@@ -220,6 +222,7 @@ export class CadDataset<
         params
       );
     });
+    this.notifySpatialMutation();
   }
 
   async delete(id: number): Promise<void> {
@@ -232,6 +235,7 @@ export class CadDataset<
       );
       await this.registerRepository.decrementObjectCount(this.info.id);
     });
+    this.notifySpatialMutation();
   }
 
   static async create(

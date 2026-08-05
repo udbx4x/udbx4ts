@@ -142,6 +142,7 @@ export class TextDataset<
         geometry.byteLength
       );
     });
+    this.notifySpatialMutation();
   }
 
   async insertMany(
@@ -195,6 +196,7 @@ export class TextDataset<
         await statement.finalize();
       }
     });
+    this.notifySpatialMutation();
   }
 
   async update(
@@ -239,6 +241,7 @@ export class TextDataset<
         params
       );
     });
+    this.notifySpatialMutation();
   }
 
   async delete(id: number): Promise<void> {
@@ -251,6 +254,7 @@ export class TextDataset<
       );
       await this.registerRepository.decrementObjectCount(this.info.id);
     });
+    this.notifySpatialMutation();
   }
 }
 

@@ -1,3 +1,5 @@
+import type { SpatialQueryReason } from "./types";
+
 export class UdbxError extends Error {
   constructor(message?: string) {
     super(message);
@@ -37,5 +39,16 @@ export class UdbxIOError extends UdbxError {
   constructor(cause?: Error) {
     super(cause ? `IO error: ${cause.message}` : "IO error");
     this.name = "UdbxIOError";
+  }
+}
+
+/** 携带稳定原因码的视口空间查询错误。 */
+export class SpatialQueryError extends UdbxError {
+  readonly reason: SpatialQueryReason;
+
+  constructor(reason: SpatialQueryReason, message: string) {
+    super(message);
+    this.name = "SpatialQueryError";
+    this.reason = reason;
   }
 }
