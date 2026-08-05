@@ -1,6 +1,6 @@
 import { executeStatement, queryAll, queryOne } from "../sql/SqlHelpers";
 import type { SqlDriver } from "../sql/SqlDriver";
-import type { DatasetInfo, DatasetKind } from "../types";
+import type { BoundingBox, DatasetInfo, DatasetKind } from "../types";
 import { datasetKindToValue, datasetValueToKind } from "./UdbxTypeMappings";
 
 interface SmRegisterRow {
@@ -11,6 +11,21 @@ interface SmRegisterRow {
   readonly SmObjectCount: number;
   readonly SmSRID: number | null;
   readonly geometryType?: number | null;
+}
+
+export interface SmRegisterSpatialMetadata {
+  readonly idColumnName: string | null;
+  readonly geometryColumnName: string | null;
+  readonly extent: BoundingBox | null;
+}
+
+interface SmRegisterSpatialRow {
+  readonly SmIDColName: string | null;
+  readonly SmGeoColName: string | null;
+  readonly SmLeft: number | null;
+  readonly SmBottom: number | null;
+  readonly SmRight: number | null;
+  readonly SmTop: number | null;
 }
 
 function mapRow(row: SmRegisterRow): DatasetInfo {
@@ -61,6 +76,50 @@ export class SmRegisterRepository {
     );
 
     return row ? mapRow(row) : null;
+  }
+
+  /** 读取空间查询所需的最小 SmRegister 元数据（ID/几何列名与声明范围）。 */
+  async findSpatialMetadata(
+    name: string
+  ): Promise<SmRegisterSpatialMetadata | null> {
+    const row = await queryOne<SmRegisterSpatialRow>(
+      this.driver,
+      `SELECT
+         SmIDColName,
+         SmGeoColName,
+         SmLeft,
+         SmBottom,
+         SmRight,
+         SmTop
+       FROM SmRegister
+       WHERE SmDatasetName = ?`,
+      [name]
+    );
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      idColumnName: row.SmIDColName ?? null,
+      geometryColumnName: row.SmGeoColName ?? null,
+      extent:
+        row.SmLeft !== null &&
+        row.SmBottom !== null &&
+        row.SmRight !== null &&
+        row.SmTop !== null &&
+        Number.isFinite(row.SmLeft) &&
+        Number.isFinite(row.SmBottom) &&
+        Number.isFinite(row.SmRight) &&
+        Number.isFinite(row.SmTop)
+          ? {
+              minX: row.SmLeft,
+              minY: row.SmBottom,
+              maxX: row.SmRight,
+              maxY: row.SmTop
+            }
+          : null
+    };
   }
 
   async nextDatasetId(): Promise<number> {
