@@ -2,6 +2,7 @@ export const RPC_METHODS = {
   udbxOpen: "udbx.open",
   udbxClose: "udbx.close",
   udbxListDatasets: "udbx.listDatasets",
+  udbxQuerySpatial: "udbx.querySpatial",
   udbxGetDatasetInfo: "udbx.getDatasetInfo",
   udbxExportDatabase: "udbx.exportDatabase",
   udbxImportDatabase: "udbx.importDatabase",

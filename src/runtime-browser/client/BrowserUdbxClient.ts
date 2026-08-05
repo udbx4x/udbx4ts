@@ -1,6 +1,11 @@
 import type { UdbxRuntime } from "../../core/datasource/UdbxDataSource";
 import type { Dataset } from "../../core/dataset/Dataset";
-import type { DatasetInfo, FieldInfo } from "../../core/types";
+import type {
+  DatasetInfo,
+  FieldInfo,
+  SpatialQueryOptions,
+  SpatialQueryResult
+} from "../../core/types";
 import { RPC_METHODS } from "../../shared-runtime/rpc/methods";
 import type { RuntimeTransport } from "../../shared-runtime/transport";
 import { BrowserDatasetClient } from "./BrowserDatasetClient";
@@ -37,6 +42,16 @@ export class BrowserUdbxClient {
 
   async listDatasets(): Promise<readonly DatasetInfo[]> {
     return this.transport.request<readonly DatasetInfo[]>(RPC_METHODS.udbxListDatasets);
+  }
+
+  async querySpatial(
+    datasetName: string,
+    options: SpatialQueryOptions
+  ): Promise<SpatialQueryResult> {
+    return this.transport.request<
+      SpatialQueryResult,
+      { readonly datasetName: string; readonly options: SpatialQueryOptions }
+    >(RPC_METHODS.udbxQuerySpatial, { datasetName, options });
   }
 
   async getDataset(name: string): Promise<Dataset> {

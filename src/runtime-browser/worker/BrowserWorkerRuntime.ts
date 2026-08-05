@@ -22,6 +22,10 @@ interface DatasetNameParams {
   readonly datasetName: string;
 }
 
+interface QuerySpatialParams extends DatasetNameParams {
+  readonly options?: unknown;
+}
+
 interface DatasetGetByIdParams extends DatasetNameParams {
   readonly id: number;
 }
@@ -151,6 +155,8 @@ export class BrowserWorkerRuntime {
         return this.close(request.id);
       case RPC_METHODS.udbxListDatasets:
         return this.listDatasets(request.id);
+      case RPC_METHODS.udbxQuerySpatial:
+        return this.querySpatial(request as RuntimeRequest<QuerySpatialParams>);
       case RPC_METHODS.udbxGetDatasetInfo:
         return this.getDatasetInfo(request as RuntimeRequest<{ readonly name: string }>);
       case RPC_METHODS.udbxExportDatabase:
@@ -217,6 +223,32 @@ export class BrowserWorkerRuntime {
     }
 
     return createSuccess(id, undefined);
+  }
+
+  private async querySpatial(
+    request: RuntimeRequest<QuerySpatialParams>
+  ): Promise<RuntimeResponse> {
+    const datasetName = parseDatasetName(request.params);
+    if (!datasetName) {
+      return createFailure(request.id, "invalid_params", "datasetName is required");
+    }
+    if (!this.dataSource) {
+      return createFailure(request.id, "not_open", "data source is not open");
+    }
+
+    try {
+      const result = await this.dataSource.querySpatial(
+        datasetName,
+        (request.params?.options ?? {}) as Parameters<
+          UdbxDataSource["querySpatial"]
+        >[1]
+      );
+      return createSuccess(request.id, result);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Spatial query failed.";
+      return createFailure(request.id, "spatial_query_error", message);
+    }
   }
 
   private async listDatasets(id: string): Promise<RuntimeResponse> {
