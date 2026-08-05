@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -14,6 +15,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(__dirname, "../../..");
 const sampleDataPath = resolve(workspaceRoot, "data/SampleData.udbx");
 const henanPath = resolve(workspaceRoot, "data/henan.udbx");
+// 真实样本位于 monorepo 工作区（udbx4x/data），独立仓库 CI 检出中不存在时跳过。
+const samplesAvailable = existsSync(sampleDataPath) && existsSync(henanPath);
 
 async function openSample(path: string): Promise<UdbxDataSource> {
   return UdbxDataSource.open({
@@ -24,7 +27,7 @@ async function openSample(path: string): Promise<UdbxDataSource> {
 
 const WIDE_BOUNDS = { minX: -180, minY: -90, maxX: 180, maxY: 90 };
 
-describe("spatial query real samples", () => {
+describe.skipIf(!samplesAvailable)("spatial query real samples", () => {
   it("queries henan.udbx weibo through RTree with stable ordering", async () => {
     const ds = await openSample(henanPath);
     try {
